@@ -4,7 +4,6 @@ Installed packages on the project virtualenv (all just pip install on linux):
 numpy  
 tensorflow  
 Cython (for the COCO PythonAPI)  
-scikit-image (COCO)
 matplotlib (not yet used)  
 sklearn (not yet used)  
 scipy (not yet used)  
