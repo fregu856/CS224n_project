@@ -3,11 +3,11 @@
 Installed packages on the project virtualenv:  
 numpy  
 tensorflow  
+Cython (for the COCO PythonAPI)  
 matplotlib (not yet used)  
 sklearn (not yet used)  
 scipy (not yet used)  
 pandas (not yet used)  
-Cython (for the COCO PythonAPI)
 
 ********  
 
