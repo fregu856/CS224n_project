@@ -12,10 +12,10 @@ import pickle
 model_dir = "inception"
 
 # define where all images are located:
-images_dir = "images/"
+img_dir = "images/"
 # create a list of the paths to all images:
-image_paths = [images_dir + file_name for file_name in\
-        os.listdir(images_dir) if ".jpg" in file_name]
+img_paths = [img_dir + file_name for file_name in\
+        os.listdir(img_dir) if ".jpg" in file_name]
         
 def load_pretrained_CNN():
     """
@@ -33,17 +33,17 @@ def load_pretrained_CNN():
         graph_def.ParseFromString(model_file.read())
         _ = tf.import_graph_def(graph_def, name="")
         
-def extract_image_features(image_paths):
+def extract_img_features(img_paths):
     """
-    - Runs every image in "image_paths" through the pretrained CNN and
+    - Runs every image in "img_paths" through the pretrained CNN and
     returns their respective feature vectors (the second-to-last layer 
-    of the CNN) in "image_feature_vectors".
+    of the CNN) in "img_feature_vectors".
     """
     
     no_of_features = 2048
-    no_of_images = len(image_paths)
-    image_feature_vectors = np.empty((no_of_images, no_of_features))
-    image_names = []
+    no_of_imgs = len(img_paths)
+    img_feature_vectors = np.empty((no_of_imgs, no_of_features))
+    img_names = []
     
     # load the Inception-V3 model:
     load_pretrained_CNN()
@@ -54,33 +54,37 @@ def extract_image_features(image_paths):
         second_to_last_tensor = sess.graph.get_tensor_by_name(
                 "pool_3:0")
         
-        for image_index, image_path in enumerate(image_paths):
-            print "Processing %s" % image_path
+        for img_index, img_path in enumerate(img_paths):
+            print "Processing %s" % img_path
             
-            if not gfile.Exists(image_path):
-                tf.logging.fatal("File does not exist:", image_path)
+            if not gfile.Exists(img_path):
+                tf.logging.fatal("File does not exist:", img_path)
                 
             # read the image and get its corresponding feature vector:
-            image_data = gfile.FastGFile(image_path, "rb").read()
+            img_data = gfile.FastGFile(img_path, "rb").read()
             feature_vector = sess.run(second_to_last_tensor, 
-                    feed_dict={"DecodeJpeg/contents:0": image_data})
+                    feed_dict={"DecodeJpeg/contents:0": img_data})
             # # flatten the features to an np.array:
             feature_vector = np.squeeze(feature_vector)
             # # save the image features:
-            image_feature_vectors[image_index, :] = feature_vector
+            img_feature_vectors[img_index, :] = feature_vector
             
             # save the image name:
-            image_name = image_path.split("/")[1]
-            image_names.append(image_name)
+            img_name = img_path.split("/")[1]
+            img_names.append(img_name)
             
-        return image_feature_vectors, image_names
+        return img_feature_vectors, img_names
         
-image_feature_vectors, image_names = extract_image_features(image_paths)
+img_feature_vectors, img_names = extract_img_features(img_paths)
 
-print image_feature_vectors
-print image_names
+# save the feature vectors and names on disk:
+pickle.dump(img_feature_vectors, 
+        open(os.path.join(img_dir, "img_feature_vectors"), "wb"))
+pickle.dump(img_names, 
+        open(os.path.join(img_dir, "img_names"), "wb"))
 
-    
-        
-
-
+# load the feature vectors and names from disk:
+features = pickle.load(open(os.path.join(img_dir, "img_feature_vectors")))
+names = pickle.load(open(os.path.join(img_dir, "img_names")))
+print features
+print names
