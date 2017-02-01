@@ -1,12 +1,13 @@
 # CS224n_project
 
-Installed packages (not all might end up being used):  
+Installed packages on the project virtualenv:  
 numpy  
 tensorflow  
-matplotlib  
-sklearn  
-scipy  
-pandas  
+matplotlib (not yet used)  
+sklearn (not yet used)  
+scipy (not yet used)  
+pandas (not yet used)  
+Cython (for the COCO PythonAPI)
 
 ********  
 
@@ -33,7 +34,7 @@ coco/images
 Download the annotations and place in:  
 coco/annotations  
 
-To install the Python API:  
+To install the Python API:
 $ cd coco/PythonAPI  
 $ make  
 
