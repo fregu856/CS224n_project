@@ -1,6 +1,6 @@
 # CS224n_project
 
-Installed packages on the project virtualenv:  
+Installed packages on the project virtualenv (all just pip install on linux):  
 numpy  
 tensorflow  
 Cython (for the COCO PythonAPI)  
@@ -34,7 +34,7 @@ coco/images
 Download the annotations and place in:  
 coco/annotations  
 
-To install the Python API:
+To install the Python API:  
 $ cd coco/PythonAPI  
 $ make  
 
