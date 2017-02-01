@@ -4,7 +4,6 @@ Installed packages on the project virtualenv (all just pip install on linux):
 numpy  
 tensorflow  
 Cython (for the COCO PythonAPI)  
-scikit-image (COCO)
 matplotlib (not yet used)  
 sklearn (not yet used)  
 scipy (not yet used)  
@@ -29,8 +28,13 @@ http://mscoco.org/dataset/#download
 Clone/download and place the "coco" folder in your project directory:  
 https://github.com/pdollar/coco  
 
-Download the images and place in:  
-coco/images  
+Download the training images and place in coco/images/train:  
+$ wget "http://msvocds.blob.core.windows.net/coco2014/train2014.zip"  
+$ unzip train2014.zip  
+
+Download the validation images and place in coco/images/val:  
+$ wget "http://msvocds.blob.core.windows.net/coco2014/val2014.zip"  
+$ unzip val2014.zip  
 
 Download the annotations and place in:  
 coco/annotations  
