@@ -12,7 +12,7 @@ import pickle
 model_dir = "inception"
 
 # define where all images are located:
-img_dir = "images/"
+img_dir = "coco/images/"
 # create a list of the paths to all images:
 img_paths = [img_dir + file_name for file_name in\
         os.listdir(img_dir) if ".jpg" in file_name]
@@ -70,12 +70,15 @@ def extract_img_features(img_paths):
             img_feature_vectors[img_index, :] = feature_vector
             
             # save the image name:
-            img_name = img_path.split("/")[1]
+            img_name = img_path.split("/")[2]
             img_names.append(img_name)
             
         return img_feature_vectors, img_names
         
 img_feature_vectors, img_names = extract_img_features(img_paths)
+
+print img_feature_vectors
+print img_names
 
 # save the feature vectors and names on disk:
 pickle.dump(img_feature_vectors, 
@@ -84,7 +87,7 @@ pickle.dump(img_names,
         open(os.path.join(img_dir, "img_names"), "wb"))
 
 # load the feature vectors and names from disk:
-features = pickle.load(open(os.path.join(img_dir, "img_feature_vectors")))
-names = pickle.load(open(os.path.join(img_dir, "img_names")))
-print features
-print names
+#features = pickle.load(open(os.path.join(img_dir, "img_feature_vectors")))
+#names = pickle.load(open(os.path.join(img_dir, "img_names")))
+#print features
+#print names
