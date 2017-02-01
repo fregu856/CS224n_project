@@ -38,3 +38,6 @@ To install the Python API:
 $ cd coco/PythonAPI  
 $ make  
 
+Demo of the PythonAPI:  
+https://github.com/pdollar/coco/blob/master/PythonAPI/pycocoDemo.ipynb
+
