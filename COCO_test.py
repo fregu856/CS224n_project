@@ -16,9 +16,27 @@ coco=COCO(captions_file)
 # get indices for all "type_of_data" images (all train or val images):
 img_ids = coco.getImgIds()
 
-# get the id for one image:
-img_id = img_ids[0]
-# get the corresponding image object:
-img = coco.loadImgs(img_id)[0]
-# download the corresponding image:
-coco.download(tarDir = "coco/images", imgIds=[img_id])
+for img_id in img_ids:
+    # get the id for one image:
+    #img_id = img_ids[0]
+    
+    # get the corresponding image object:
+    img = coco.loadImgs(img_id)[0]
+    # download the corresponding image:
+    coco.download(tarDir = "coco/images", imgIds=[img_id])
+
+# get the ids of all captions for the image:
+#caption_ids = coco.getAnnIds(imgIds=img["id"])
+# get all caption objects for the image:
+#captions = coco.loadAnns(caption_ids)
+# print all captions:
+#coco.showAnns(captions)
+
+#print "*******"
+
+# print all captions in a different way:
+#for caption_obj in captions:
+#    caption = caption_obj["caption"]
+#    print caption
+    
+#print len(img_ids)

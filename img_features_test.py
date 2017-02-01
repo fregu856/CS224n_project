@@ -43,7 +43,7 @@ def extract_img_features(img_paths):
     no_of_features = 2048
     no_of_imgs = len(img_paths)
     img_feature_vectors = np.empty((no_of_imgs, no_of_features))
-    img_names = []
+    img_ids = []
     
     # load the Inception-V3 model:
     load_pretrained_CNN()
@@ -69,22 +69,23 @@ def extract_img_features(img_paths):
             # # save the image features:
             img_feature_vectors[img_index, :] = feature_vector
             
-            # save the image name:
+            # save the image id:
             img_name = img_path.split("/")[2]
-            img_names.append(img_name)
+            img_id = img_name.split("_")[2].split(".")[0].lstrip("0")
+            img_ids.append(img_id)
             
-        return img_feature_vectors, img_names
+        return img_feature_vectors, img_ids
         
-img_feature_vectors, img_names = extract_img_features(img_paths)
+img_feature_vectors, img_ids = extract_img_features(img_paths)
 
 print img_feature_vectors
-print img_names
+print img_ids
 
 # save the feature vectors and names on disk:
 pickle.dump(img_feature_vectors, 
         open(os.path.join(img_dir, "img_feature_vectors"), "wb"))
-pickle.dump(img_names, 
-        open(os.path.join(img_dir, "img_names"), "wb"))
+pickle.dump(img_ids, 
+        open(os.path.join(img_dir, "img_ids"), "wb"))
 
 # load the feature vectors and names from disk:
 #features = pickle.load(open(os.path.join(img_dir, "img_feature_vectors")))
