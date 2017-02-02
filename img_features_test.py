@@ -8,6 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
+name = "_train_1"
+
 # define where the pretrained inception model is located:
 model_dir = "inception"
 
@@ -83,9 +85,9 @@ print img_ids
 
 # save the feature vectors and names on disk:
 pickle.dump(img_feature_vectors, 
-        open(os.path.join(img_dir, "img_feature_vectors"), "wb"))
+        open(os.path.join(img_dir, "img_feature_vectors" + name), "wb"))
 pickle.dump(img_ids, 
-        open(os.path.join(img_dir, "img_ids"), "wb"))
+        open(os.path.join(img_dir, "img_ids" + name), "wb"))
 
 # load the feature vectors and names from disk:
 #features = pickle.load(open(os.path.join(img_dir, "img_feature_vectors")))

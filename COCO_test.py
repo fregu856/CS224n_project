@@ -10,20 +10,21 @@ from pycocotools.coco import COCO
 type_of_data = "train" # ("train" or "val")
 captions_file = "coco/annotations/captions_%s2014.json" % type_of_data
 
+batch = 1
+batch_size = 10000
+
 # initialize COCO api for captions:
 coco=COCO(captions_file)
 
 # get indices for all "type_of_data" images (all train or val images):
 img_ids = coco.getImgIds()
 
-for img_id in img_ids:
-    # get the id for one image:
-    #img_id = img_ids[0]
-    
-    # get the corresponding image object:
-    img = coco.loadImgs(img_id)[0]
-    # download the corresponding image:
-    coco.download(tarDir = "coco/images", imgIds=[img_id])
+for step, img_id in enumerate(img_ids):
+    if step >= (batch-1)*batch_size and step <= batch*batch_size - 1:    
+        # download the corresponding image:
+        coco.download(tarDir = "coco/images", imgIds=[img_id])
+    elif step > batch*batch_size - 1:
+        break
 
 # get the ids of all captions for the image:
 #caption_ids = coco.getAnnIds(imgIds=img["id"])
