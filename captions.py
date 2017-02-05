@@ -39,10 +39,21 @@ def get_captions(type_of_data, train_captions, test_captions, val_captions):
         captions_vec = []
         for caption_obj in caption_objs:
             caption = caption_obj["caption"]
+            # remove empty spaces in the start or end of the caption:
+            caption = caption.strip()
             # make the caption lower case:
             caption = caption.lower()
             # remove all non-alphanum chars (keep spaces between word):
             caption = re.sub("[^a-z0-9 ]+", "", caption)
+            # remove all double spaces in the caption:
+            caption = re.sub("  ", " ", caption)
+            # convert the caption into a vector of words:
+            caption = caption.split(" ")
+            # remove any empty chars still left in the caption:
+            while "" in caption:
+                index = caption.index("")
+                del caption[index]
+            # add the caption to the vector of captions:
             captions_vec.append(caption)
             
         # store the captions in the corresponding captions dict:
@@ -59,12 +70,71 @@ val_captions = {}
 get_captions("train", train_captions, test_captions, val_captions)
 get_captions("val", train_captions, test_captions, val_captions)
 
-# replace all words (in train) that appears less than five times 
-# (in train) with an UNK token:
+# count how many times each word occur in the training set:
+word_counts = {}
+for img_id in train_captions:
+    captions = train_captions[img_id]
+    for caption in captions:
+        for word in caption:
+            if word not in word_counts:
+                word_counts[word] = 1
+            else:
+                word_counts[word] += 1
 
-# append each caption with an SOS token:
+# create a vocabulary of all words that appear 5 or more times in the
+# training set:
+vocabulary = []
+for word in word_counts:
+    word_count = word_counts[word]
+    if word_count >= 5:
+        vocabulary.append(word)
 
-# prepend each caption with an EOS token:
+# replace all words in train that are not in the vocabulary with an 
+# <UNK> token AND prepend each caption with an <SOS> token AND append 
+# each caption with an <EOS> token:
+for step, img_id in enumerate(train_captions):
+    if step % 1000 == 0:
+        print "train: ", step
+        
+    captions = train_captions[img_id]
+    new_captions = []
+    for caption in captions:
+        for word_index in range(len(caption)):
+            word = caption[word_index]
+            if word not in vocabulary:
+                caption[word_index] = "<UNK>"
+        # prepend the caption with an <SOS> token;
+        caption.insert(0, "<SOS>")
+        # append tge caption with an <EOS> token:
+        caption.append("<EOS>")
+        new_captions.append(caption)
+    train_captions[img_id] = new_captions
+
+# prepend each caption in val with an <SOS> token AND append each 
+# caption with an <EOS> token:
+for step, img_id in enumerate(val_captions):
+    if step % 1000 == 0:
+        print "val: ", step
+        
+    captions = val_captions[img_id]
+    for caption in captions:
+        # prepend the caption with an <SOS> token;
+        caption.insert(0, "<SOS>")
+        # append tge caption with an <EOS> token:
+        caption.append("<EOS>")
+
+# prepend each caption in test with an <SOS> token AND append each 
+# caption with an <EOS> token:
+for step, img_id in enumerate(test_captions):
+    if step % 1000 == 0:
+        print "val: ", step
+        
+    captions = test_captions[img_id]
+    for caption in captions:
+        # prepend the caption with an <SOS> token;
+        caption.insert(0, "<SOS>")
+        # append tge caption with an <EOS> token:
+        caption.append("<EOS>")
     
 # save the captions to disk:    
 pickle.dump(train_captions, 
