@@ -127,7 +127,7 @@ for step, img_id in enumerate(val_captions):
 # caption with an <EOS> token:
 for step, img_id in enumerate(test_captions):
     if step % 1000 == 0:
-        print "val: ", step
+        print "train: ", step
         
     captions = test_captions[img_id]
     for caption in captions:
