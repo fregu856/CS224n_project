@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
-name = "_train_1"
+name = "_train3"
 
 # define where the pretrained inception model is located:
 model_dir = "inception"
@@ -57,40 +57,45 @@ def extract_img_features(img_paths):
                 "pool_3:0")
         
         for img_index, img_path in enumerate(img_paths):
-            print "Processing %s" % img_path
+            if img_index % 100 == 0:
+                print img_index
             
             if not gfile.Exists(img_path):
                 tf.logging.fatal("File does not exist:", img_path)
                 
             # read the image and get its corresponding feature vector:
             img_data = gfile.FastGFile(img_path, "rb").read()
-            feature_vector = sess.run(second_to_last_tensor, 
-                    feed_dict={"DecodeJpeg/contents:0": img_data})
-            # # flatten the features to an np.array:
-            feature_vector = np.squeeze(feature_vector)
-            # # save the image features:
-            img_feature_vectors[img_index, :] = feature_vector
-            
-            # save the image id:
-            img_name = img_path.split("/")[2]
-            img_id = img_name.split("_")[2].split(".")[0].lstrip("0")
-            img_ids.append(img_id)
+            try:
+                feature_vector = sess.run(second_to_last_tensor, 
+                        feed_dict={"DecodeJpeg/contents:0": img_data})
+            except:
+                print "JPEG error for:"
+                print img_index
+                print img_id
+                print "******************"
+            else:
+                # # flatten the features to an np.array:
+                feature_vector = np.squeeze(feature_vector)
+                # # save the image features:
+                img_feature_vectors[img_index, :] = feature_vector
+                
+                # save the image id:
+                img_name = img_path.split("/")[2]
+                img_id = img_name.split("_")[2].split(".")[0].lstrip("0")
+                img_ids.append(img_id)
             
         return img_feature_vectors, img_ids
         
 img_feature_vectors, img_ids = extract_img_features(img_paths)
 
-print img_feature_vectors
-print img_ids
-
 # save the feature vectors and names on disk:
 pickle.dump(img_feature_vectors, 
-        open(os.path.join(img_dir, "img_feature_vectors" + name), "wb"))
+        open(os.path.join("coco/features/", "img_feature_vectors" + name), "wb"))
 pickle.dump(img_ids, 
-        open(os.path.join(img_dir, "img_ids" + name), "wb"))
+        open(os.path.join("coco/features/", "img_ids" + name), "wb"))
 
 # load the feature vectors and names from disk:
-#features = pickle.load(open(os.path.join(img_dir, "img_feature_vectors")))
-#names = pickle.load(open(os.path.join(img_dir, "img_names")))
+#features = pickle.load(open(os.path.join("coco/features/", "img_feature_vectors" + name)))
+#names = pickle.load(open(os.path.join("coco/features/", "img_ids" + name)))
 #print features
 #print names

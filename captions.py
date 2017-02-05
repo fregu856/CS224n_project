@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 import os
+import re
 
 # add the "PythonAPI" dir to the path so that "pycocotools" can be found:
 import sys
@@ -17,9 +18,11 @@ def get_captions(type_of_data, captions):
 
     # get indices for all "type_of_data" images (all train or val images):
     img_ids = coco.getImgIds()
-    img_ids = img_ids[0:10]
 
-    for img_id in img_ids:
+    for step, img_id in enumerate(img_ids):
+        if step % 1000 == 0:
+            print step
+            
         # get the ids of all captions for the image:
         caption_ids = coco.getAnnIds(imgIds=img_id)
         # get all caption objects for the image:
@@ -29,6 +32,10 @@ def get_captions(type_of_data, captions):
         captions_vec = []
         for caption_obj in caption_objs:
             caption = caption_obj["caption"]
+            # make the caption lower case:
+            caption = caption.lower()
+            # remove all non-alphanum chars (keep spaces between word):
+            caption = re.sub("[^a-z0-9 ]+", "", caption)
             captions_vec.append(caption)
             
         # store the captions in the dict "captions":
@@ -43,6 +50,6 @@ pickle.dump(captions,
         open(os.path.join(captions_dir, "captions"), "wb"))
 
 # load the captions from disk:        
-test = pickle.load(open(os.path.join(captions_dir, "captions")))
-print test
+#test = pickle.load(open(os.path.join(captions_dir, "captions")))
+#print test
 
