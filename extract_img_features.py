@@ -93,9 +93,3 @@ pickle.dump(img_feature_vectors,
         open(os.path.join("coco/features/", "img_feature_vectors" + name), "wb"))
 pickle.dump(img_ids, 
         open(os.path.join("coco/features/", "img_ids" + name), "wb"))
-
-# load the feature vectors and names from disk:
-#features = pickle.load(open(os.path.join("coco/features/", "img_feature_vectors" + name)))
-#names = pickle.load(open(os.path.join("coco/features/", "img_ids" + name)))
-#print features
-#print names

@@ -23,7 +23,7 @@ def get_captions(type_of_data, train_captions, test_captions, val_captions):
     # initialize COCO api for captions:
     coco=COCO(captions_file)
 
-    # get indices for all "type_of_data" images (all train or val images) (split on mscoco.org):
+    # get indices for all "type_of_data" images (all train or val images) (original split on mscoco.org):
     img_ids = coco.getImgIds()
 
     for step, img_id in enumerate(img_ids):
@@ -70,6 +70,16 @@ val_captions = {}
 get_captions("train", train_captions, test_captions, val_captions)
 get_captions("val", train_captions, test_captions, val_captions)
 
+# get all words that have a pretrained word embedding:
+pretrained_words = []
+with open(os.path.join(captions_dir, "glove.6B.50d.txt")) as file:
+    for line in file:
+        line_elements = line.split(" ")
+        word = line_elements[0]
+        word_vector = line_elements[1:]
+        
+        pretrained_words.append(word)
+
 # count how many times each word occur in the training set:
 word_counts = {}
 for img_id in train_captions:
@@ -82,12 +92,16 @@ for img_id in train_captions:
                 word_counts[word] += 1
 
 # create a vocabulary of all words that appear 5 or more times in the
-# training set:
+# training set AND have a pretrained word embedding:
 vocabulary = []
 for word in word_counts:
     word_count = word_counts[word]
-    if word_count >= 5:
+    if word_count >= 5 and word in pretrained_words:
         vocabulary.append(word)
+        
+# save the vocabulary to disk:
+pickle.dump(vocabulary, 
+        open(os.path.join(captions_dir, "vocabulary"), "wb"))
 
 # replace all words in train that are not in the vocabulary with an 
 # <UNK> token AND prepend each caption with an <SOS> token AND append 
