@@ -1,8 +1,10 @@
 import pickle
 import os
+import numpy as np
 
 def tokenize_caption(caption):
-    # load the vocabulary from disk:        
+    # load the vocabulary from disk:  
+    captions_dir = "coco/annotations/"    
     vocabulary = pickle.load(open(os.path.join(captions_dir, 
                                                "vocabulary"))) 
     

@@ -17,3 +17,13 @@ print img_captions
 
 for caption in img_captions:
     print caption
+    
+# load the vocabulary from disk:        
+vocabulary = pickle.load(open(os.path.join(captions_dir, "vocabulary")))
+
+print vocabulary
+
+# load the embeddings matrix from disk:        
+embeddings_matrix = pickle.load(open(os.path.join(captions_dir, "embeddings_matrix")))
+
+print embeddings_matrix
