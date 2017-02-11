@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
-name = "_train3"
+name = "_train8"
 
 # define where the pretrained inception model is located:
 model_dir = "inception"

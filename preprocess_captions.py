@@ -17,11 +17,11 @@ test_img_ids = pickle.load(open(os.path.join(ids_dir, "img_ids_test")))
 # load the val image ids from disk:        
 val_img_ids = pickle.load(open(os.path.join(ids_dir, "img_ids_val")))
 
-def get_captions(type_of_data, train_captions, test_captions, val_captions):
+def get_captions(type_of_data):
     captions_file = "coco/annotations/captions_%s2014.json" % type_of_data
 
     # initialize COCO api for captions:
-    coco=COCO(captions_file)
+    coco = COCO(captions_file)
 
     # get indices for all "type_of_data" images (all train or val images) (original split on mscoco.org):
     img_ids = coco.getImgIds()
@@ -35,9 +35,12 @@ def get_captions(type_of_data, train_captions, test_captions, val_captions):
         # get all caption objects for the image:
         caption_objs = coco.loadAnns(caption_ids)
         
-        # get all captions for the image:
-        captions_vec = []
-        for caption_obj in caption_objs:
+        for caption_obj in caption_objs:            
+            # save the caption id and the corresponding img id:
+            caption_id = caption_obj["id"]
+            caption_id_2_img_id[caption_id] = img_id
+            
+            # get the caption:
             caption = caption_obj["caption"]
             # remove empty spaces in the start or end of the caption:
             caption = caption.strip()
@@ -53,22 +56,25 @@ def get_captions(type_of_data, train_captions, test_captions, val_captions):
             while "" in caption:
                 index = caption.index("")
                 del caption[index]
-            # add the caption to the vector of captions:
-            captions_vec.append(caption)
             
-        # store the captions in the corresponding captions dict:
-        if str(img_id) in test_img_ids:
-            test_captions[img_id] = captions_vec
-        elif str(img_id) in val_img_ids:
-            val_captions[img_id] = captions_vec
-        else:
-            train_captions[img_id] = captions_vec
+            # store the caption in the corresponding captions dict:
+            if str(img_id) in test_img_ids:
+                test_caption_id_2_caption[caption_id] = caption
+            elif str(img_id) in val_img_ids:
+                val_caption_id_2_caption[caption_id] = caption
+            else:
+                train_caption_id_2_caption[caption_id] = caption
 
-train_captions = {}
-test_captions = {}
-val_captions = {}
-get_captions("train", train_captions, test_captions, val_captions)
-get_captions("val", train_captions, test_captions, val_captions)
+train_caption_id_2_caption = {}
+test_caption_id_2_caption = {}
+val_caption_id_2_caption = {}
+caption_id_2_img_id = {}
+get_captions("train")
+get_captions("val")
+
+# save the caption_id to img_id mapping dict to disk:
+pickle.dump(caption_id_2_img_id, 
+        open(os.path.join(captions_dir, "caption_id_2_img_id"), "wb"))
 
 # get all words that have a pretrained word embedding:
 pretrained_words = []
@@ -82,14 +88,13 @@ with open(os.path.join(captions_dir, "glove.6B.50d.txt")) as file:
 
 # count how many times each word occur in the training set:
 word_counts = {}
-for img_id in train_captions:
-    captions = train_captions[img_id]
-    for caption in captions:
-        for word in caption:
-            if word not in word_counts:
-                word_counts[word] = 1
-            else:
-                word_counts[word] += 1
+for caption_id in train_caption_id_2_caption:
+    caption = train_caption_id_2_caption[caption_id]
+    for word in caption:
+        if word not in word_counts:
+            word_counts[word] = 1
+        else:
+            word_counts[word] += 1
 
 # create a vocabulary of all words that appear 5 or more times in the
 # training set AND have a pretrained word embedding:
@@ -98,62 +103,115 @@ for word in word_counts:
     word_count = word_counts[word]
     if word_count >= 5 and word in pretrained_words:
         vocabulary.append(word)
+
+# replace all words in train that are not in the vocabulary with an 
+# <UNK> token AND prepend each caption with an <SOS> token AND append 
+# each caption with an <EOS> token:
+for step, caption_id in enumerate(train_caption_id_2_caption):
+    if step % 1000 == 0:
+        print "train: ", step
+        
+    caption = train_caption_id_2_caption[caption_id]
+    for word_index in range(len(caption)):
+        word = caption[word_index]
+        if word not in vocabulary:
+            caption[word_index] = "<UNK>"
+    # prepend the caption with an <SOS> token;
+    caption.insert(0, "<SOS>")
+    # append the caption with an <EOS> token:
+    caption.append("<EOS>")   
+    
+# add "<SOS>", "<UNK>" and "<EOS>" to the vocabulary:
+vocabulary.insert(0, "<EOS>")
+vocabulary.insert(0, "<UNK>")
+vocabulary.insert(0, "<SOS>")
         
 # save the vocabulary to disk:
 pickle.dump(vocabulary, 
         open(os.path.join(captions_dir, "vocabulary"), "wb"))
 
-# replace all words in train that are not in the vocabulary with an 
-# <UNK> token AND prepend each caption with an <SOS> token AND append 
-# each caption with an <EOS> token:
-for step, img_id in enumerate(train_captions):
-    if step % 1000 == 0:
-        print "train: ", step
-        
-    captions = train_captions[img_id]
-    new_captions = []
-    for caption in captions:
-        for word_index in range(len(caption)):
-            word = caption[word_index]
-            if word not in vocabulary:
-                caption[word_index] = "<UNK>"
-        # prepend the caption with an <SOS> token;
-        caption.insert(0, "<SOS>")
-        # append tge caption with an <EOS> token:
-        caption.append("<EOS>")
-        new_captions.append(caption)
-    train_captions[img_id] = new_captions
-
 # prepend each caption in val with an <SOS> token AND append each 
 # caption with an <EOS> token:
-for step, img_id in enumerate(val_captions):
+for step, caption_id in enumerate(val_caption_id_2_caption):
     if step % 1000 == 0:
         print "val: ", step
         
-    captions = val_captions[img_id]
-    for caption in captions:
-        # prepend the caption with an <SOS> token;
-        caption.insert(0, "<SOS>")
-        # append tge caption with an <EOS> token:
-        caption.append("<EOS>")
+    caption = val_caption_id_2_caption[caption_id]
+    # prepend the caption with an <SOS> token;
+    caption.insert(0, "<SOS>")
+    # append tge caption with an <EOS> token:
+    caption.append("<EOS>")
 
 # prepend each caption in test with an <SOS> token AND append each 
 # caption with an <EOS> token:
-for step, img_id in enumerate(test_captions):
+for step, caption_id in enumerate(test_caption_id_2_caption):
     if step % 1000 == 0:
-        print "train: ", step
+        print "test: ", step
         
-    captions = test_captions[img_id]
-    for caption in captions:
-        # prepend the caption with an <SOS> token;
-        caption.insert(0, "<SOS>")
-        # append tge caption with an <EOS> token:
-        caption.append("<EOS>")
+    caption = test_caption_id_2_caption[caption_id]
+    # prepend the caption with an <SOS> token;
+    caption.insert(0, "<SOS>")
+    # append tge caption with an <EOS> token:
+    caption.append("<EOS>")
     
+# tokenize all train captions:
+for step, caption_id in enumerate(train_caption_id_2_caption):
+    if step % 1000 == 0:
+        print "train, tokenizing: ", step
+        
+    caption = train_caption_id_2_caption[caption_id]
+    
+    # tokenize the caption:
+    tokenized_caption = []
+    for word in caption:
+        word_index = vocabulary.index(word)
+        tokenized_caption.append(word_index)
+    
+    # convert into a numpy array:
+    tokenized_caption = np.array(tokenized_caption)
+    # save:
+    train_caption_id_2_caption[caption_id] = tokenized_caption
+    
+# tokenize all test captions:
+for step, caption_id in enumerate(test_caption_id_2_caption):
+    if step % 1000 == 0:
+        print "test, tokenizing: ", step
+        
+    caption = test_caption_id_2_caption[caption_id]
+    
+    # tokenize the caption:
+    tokenized_caption = []
+    for word in caption:
+        word_index = vocabulary.index(word)
+        tokenized_caption.append(word_index)
+    
+    # convert into a numpy array:
+    tokenized_caption = np.array(tokenized_caption)
+    # save:
+    test_caption_id_2_caption[caption_id] = tokenized_caption
+    
+# tokenize all val captions:
+for step, caption_id in enumerate(val_caption_id_2_caption):
+    if step % 1000 == 0:
+        print "train, tokenizing: ", step
+        
+    caption = val_caption_id_2_caption[caption_id]
+    
+    # tokenize the caption:
+    tokenized_caption = []
+    for word in caption:
+        word_index = vocabulary.index(word)
+        tokenized_caption.append(word_index)
+    
+    # convert into a numpy array:
+    tokenized_caption = np.array(tokenized_caption)
+    # save:
+    val_caption_id_2_caption[caption_id] = tokenized_caption
+        
 # save the captions to disk:    
-pickle.dump(train_captions, 
-        open(os.path.join(captions_dir, "train_captions"), "wb"))
-pickle.dump(test_captions, 
-        open(os.path.join(captions_dir, "test_captions"), "wb"))
-pickle.dump(val_captions, 
-        open(os.path.join(captions_dir, "val_captions"), "wb"))
+pickle.dump(train_caption_id_2_caption, open(os.path.join(captions_dir,
+        "train_caption_id_2_caption"), "wb"))
+pickle.dump(test_caption_id_2_caption, open(os.path.join(captions_dir,
+        "test_caption_id_2_caption"), "wb"))
+pickle.dump(val_caption_id_2_caption, open(os.path.join(captions_dir,
+        "val_caption_id_2_caption"), "wb"))
