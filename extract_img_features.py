@@ -2,8 +2,6 @@
 - Assumes that the image dataset has been manually split such that all train
   images are stored in "coco/images/train/", all test images are stored in
   "coco/images/test/" and all val images are stored in "coco/images/val".
-
-- Assumes that "split_img_ids.py" already has been run.
 """
 
 import os
