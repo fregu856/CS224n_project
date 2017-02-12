@@ -1,3 +1,7 @@
+"""
+- Assumes that "preprocess_captions.py" already has been run.
+"""
+
 import numpy as np
 import cPickle
 import os
@@ -34,7 +38,7 @@ for vocab_index, word in enumerate(vocabulary):
     if vocab_index % 1000 == 0:
         print vocab_index
 
-    if word is not in ["<SOS>", "<UNK>", "<EOS>"]: # (the special tokens are initialized with zero vectors)
+    if word not in ["<SOS>", "<UNK>", "<EOS>"]: # (the special tokens are initialized with zero vectors)
         word_embedd_index = pretrained_words.index(word)
         word_vector = word_vectors[word_embedd_index]
         # convert into a numpy array:
@@ -43,8 +47,6 @@ for vocab_index, word in enumerate(vocabulary):
         word_vector = word_vector.astype(float)
         # add to the matrix:
         embeddings_matrix[vocab_index, :] = word_vector
-
-print embeddings_matrix
 
 # save the embeddings_matrix to disk:
 cPickle.dump(embeddings_matrix,

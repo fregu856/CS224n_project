@@ -79,14 +79,6 @@ def extract_img_features(img_paths):
 
         return img_id_2_feature_vector
 
-# define where all train imgs are located:
-train_img_dir = "coco/images/train/"
-# create a list of the paths to all train imgs:
-train_img_paths = [train_img_dir + file_name for file_name in\
-                   os.listdir(train_img_dir) if ".jpg" in file_name]
-# get the feature vectors for all train imgs:
-train_img_id_2_feature_vector = extract_img_features(train_img_paths)
-
 # define where all val imgs are located:
 val_img_dir = "coco/images/val/"
 # create a list of the paths to all val imgs:
@@ -94,6 +86,9 @@ val_img_paths = [val_img_dir + file_name for file_name in\
                  os.listdir(val_img_dir) if ".jpg" in file_name]
 # get the feature vectors for all val imgs:
 val_img_id_2_feature_vector = extract_img_features(val_img_paths)
+# save on disk:
+cPickle.dump(val_img_id_2_feature_vector,
+             open("coco/data/val_img_id_2_feature_vector", "wb"))
 
 # define where all test imgs are located:
 test_img_dir = "coco/images/test/"
@@ -102,11 +97,17 @@ test_img_paths = [test_img_dir + file_name for file_name in\
                   os.listdir(test_img_dir) if ".jpg" in file_name]
 # get the feature vectors for all test imgs:
 test_img_id_2_feature_vector = extract_img_features(test_img_paths)
-
-# save all the feature vectors on disk:
-cPickle.dump(train_img_id_2_feature_vector,
-             open("coco/data/train_img_id_2_feature_vector", "wb"))
-cPickle.dump(val_img_id_2_feature_vector,
-             open("coco/data/val_img_id_2_feature_vector", "wb"))
+# save on disk:
 cPickle.dump(test_img_id_2_feature_vector,
              open("coco/data/test_img_id_2_feature_vector", "wb"))
+
+# define where all train imgs are located:
+train_img_dir = "coco/images/train/"
+# create a list of the paths to all train imgs:
+train_img_paths = [train_img_dir + file_name for file_name in\
+                   os.listdir(train_img_dir) if ".jpg" in file_name]
+# get the feature vectors for all train imgs:
+train_img_id_2_feature_vector = extract_img_features(train_img_paths)
+# save on disk:
+cPickle.dump(train_img_id_2_feature_vector,
+             open("coco/data/train_img_id_2_feature_vector", "wb"))
