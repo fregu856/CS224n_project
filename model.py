@@ -15,7 +15,7 @@ class Config(object):
         self.dropout = 0.5
         self.embed_dim = 50
         self.hidden_dim = 200
-        self.batch_size = 2048
+        self.batch_size = 256
         self.no_of_epochs = 10
         self.lr = 0.001
         self.img_dim = 2048
@@ -116,7 +116,7 @@ class Model(object):
         batch_losses = []
         start_time = time.time()
 
-        for step, captions, imgs, labels in enumerate(train_data_iterator(self.config)):
+        for step, (captions, imgs, labels) in enumerate(train_data_iterator(self.config)):
             feed_dict = self.create_feed_dict(captions, imgs, labels,
                         self.config.dropout)
             batch_loss, _ = session.run([self.loss, self.train_op],

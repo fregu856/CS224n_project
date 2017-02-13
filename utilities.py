@@ -35,15 +35,8 @@ def get_batches(config_obj):
 
     return batches_of_caption_ids
 
-def get_batch_ph_data(batch_caption_ids, config_obj):
-    # load data to map from caption id to img feature vector:
-    caption_id_2_img_id = cPickle.load(open("coco/data/caption_id_2_img_id"))
-    train_img_id_2_feature_vector =\
-                cPickle.load(open("coco/data/train_img_id_2_feature_vector"))
-    # load data to map from caption id to caption:
-    train_caption_id_2_caption =\
-                cPickle.load(open("coco/data/train_caption_id_2_caption"))
-
+def get_batch_ph_data(batch_caption_ids, config_obj, caption_id_2_img_id,
+            train_img_id_2_feature_vector, train_caption_id_2_caption):
     # get the dimension parameters:
     batch_size = config_obj.batch_size
     img_dim = config_obj.img_dim
@@ -64,7 +57,7 @@ def get_batch_ph_data(batch_caption_ids, config_obj):
         caption = train_caption_id_2_caption[caption_id]
 
         captions[i] = caption
-        img_vectors[i] - img_vectors
+        img_vectors[i] = img_vector
         labels[i, 1:caption_length] = caption[1:]
 
         # example to explain labels:
@@ -88,11 +81,20 @@ def train_data_iterator(config_obj):
     # get the batches of caption ids:
     batches_of_caption_ids = get_batches(config_obj)
 
+    # load data to map from caption id to img feature vector:
+    caption_id_2_img_id = cPickle.load(open("coco/data/caption_id_2_img_id"))
+    train_img_id_2_feature_vector =\
+                cPickle.load(open("coco/data/train_img_id_2_feature_vector"))
+    # load data to map from caption id to caption:
+    train_caption_id_2_caption =\
+                cPickle.load(open("coco/data/train_caption_id_2_caption"))
+
     for batch_of_caption_ids in batches_of_caption_ids:
         # get the batch's data in a format ready to be fed into the placeholders:
         captions, img_vectors, labels = get_batch_ph_data(batch_of_caption_ids,
-                                                          config_obj)
+                    config_obj, caption_id_2_img_id,
+                    train_img_id_2_feature_vector, train_caption_id_2_caption)
 
         # yield the data to enable iteration (will be able to do:
         # for captions, img_vector, labels in train_data_iterator(config):)
-        yield captions, img_vectors, labels
+        yield (captions, img_vectors, labels)

@@ -1,5 +1,6 @@
 import cPickle
 import os
+import numpy as np
 
 #captions_dir = "coco/annotations/"
 #ids_dir = "coco/features/"
@@ -56,3 +57,28 @@ import os
 #batches_of_captions = cPickle.load(open("coco/data/batches_of_captions"))
 #print batches_of_captions
 #print caption_id_2_img_id[batches_of_captions[127][123]]
+
+# # tokenize all test captions:
+# for step, caption_id in enumerate(test_caption_id_2_caption):
+#     if step % 1000 == 0:
+#         print "test, tokenizing: ", step
+#
+#     caption = test_caption_id_2_caption[caption_id]
+#
+#     # tokenize the caption:
+#     tokenized_caption = []
+#     for word in caption:
+#         if word in vocabulary:
+#             word_index = vocabulary.index(word)
+#         else:
+#             word_index = -99
+#         tokenized_caption.append(word_index)
+#
+#     # convert into a numpy array:
+#     tokenized_caption = np.array(tokenized_caption)
+#     # save:
+#     test_caption_id_2_caption[caption_id] = tokenized_caption
+#
+# # save all the captions to disk:
+# cPickle.dump(test_caption_id_2_caption, open(os.path.join("coco/data/",
+#         "testing"), "wb"))
