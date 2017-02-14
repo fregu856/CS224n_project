@@ -98,3 +98,18 @@ def train_data_iterator(config_obj):
         # yield the data to enable iteration (will be able to do:
         # for captions, img_vector, labels in train_data_iterator(config):)
         yield (captions, img_vectors, labels)
+
+def detokenize_caption(tokenized_caption, vocabulary):
+    caption_vector = []
+    for word_index in tokenized_caption:
+        word = vocabulary[word_index]
+        caption_vector.append(word)
+
+    # remove <SOS> and <EOS>:
+    caption_vector.pop(0)
+    caption_vector.pop()
+
+    # turn the caption vector into a string:
+    caption = " ".join(caption_vector)
+
+    return caption

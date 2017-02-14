@@ -23,43 +23,43 @@ class Config(object):
         self.no_of_layers = 1
         self.max_no_of_epochs = 10
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
-                self.batch_size, self.hidden_dim, self.embed_dim,
-                self.no_of_layers)
+                    self.batch_size, self.hidden_dim, self.embed_dim,
+                    self.no_of_layers)
 
 class Model(object):
-    """
-    Implements a feedforward neural network with an embedding layer and single hidden layer.
-    This network will predict which transition should be applied to a given partial parse
-    configuration.
-    """
 
     def __init__(self, config, GloVe_embeddings):
         self.GloVe_embeddings = GloVe_embeddings
         self.config = config
+        self.load_utilities_data()
         self.add_placeholders()
         self.add_input()
         self.add_logits()
         self.add_loss_op()
         self.add_training_op()
 
+    def load_utilities_data(self):
+        self.vocabulary = cPickle.load(open("coco/data/vocabulary"))
+
     def add_placeholders(self):
         self.captions_ph = tf.placeholder(tf.int32,
-                    shape=[self.config.batch_size, None],
+                    shape=[None, None],
                     name="captions_ph")
         self.imgs_ph = tf.placeholder(tf.float32,
-                    shape=[self.config.batch_size, self.config.img_dim],
+                    shape=[None, self.config.img_dim],
                     name="imgs_ph")
         self.labels_ph = tf.placeholder(tf.int32,
-                    shape=[self.config.batch_size, None],
+                    shape=[None, None],
                     name="labels_ph")
         self.dropout_ph = tf.placholder(tf.float32, name="dropout_ph")
 
-    def create_feed_dict(self, captions_batch, imgs_batch, labels_batch, dropout=1):
+    def create_feed_dict(self, captions_batch, imgs_batch, labels_batch=None, dropout=1):
         feed_dict = {}
         feed_dict[self.captions_ph] = captions_batch
         feed_dict[self.imgs_ph] = imgs_batch
-        feed_dict[self.labels_ph] = labels_batch
         feed_dict[self.dropout_ph] = dropout
+        if labels_batch is not None:
+            feed_dict[self.labels_ph] = labels_batch
 
         return feed_dict
 
@@ -71,7 +71,7 @@ class Model(object):
             imgs_input = tf.nn.sigmoid(tf.matmul(self.imgs_ph, W_img) + b_img)
             imgs_input = tf.expand_dims(imgs_input, 1)
 
-        with tf.variable_scope("sentence_embed"):
+        with tf.variable_scope("captions_embed"):
             word_embeddings = tf.get_variable("word_embeddings",
                         self.GloVe_embeddings)
             captions_input = tf.nn.embedding_lookup(word_embeddings,
@@ -103,7 +103,7 @@ class Model(object):
     def add_loss_op(self):
         labels = tf.reshape(self.labels_ph, [-1])
         loss_per_word = tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    logits, labels)
+                    self.logits, labels)
         loss = tf.reduce_mean(loss_per_word)
 
         self.loss = loss
@@ -117,13 +117,24 @@ class Model(object):
         start_time = time.time()
 
         for step, (captions, imgs, labels) in enumerate(train_data_iterator(self.config)):
-            feed_dict = self.create_feed_dict(captions, imgs, labels,
-                        self.config.dropout)
+            feed_dict = self.create_feed_dict(captions, imgs, labels_batch=labels,
+                        dropout=self.config.dropout)
             batch_loss, _ = session.run([self.loss, self.train_op],
                         feed_dict=feed_dict)
             batch_losses.append(batch_loss)
 
         return batch_losses
+
+    def generate_img_caption(self, session, img_vector, vocabulary):
+        caption = np.array([vocabulary.index("<SOS>")])
+        prediciton_index = 1
+
+        while caption[-1] is not vocabulary.index("<EOS>"):
+            feed_dict = self.create_feed_dict(caption, img_vector)
+            logits = session.run([self.logits], feed_dict=feed_dict)
+            prediction_logits = logits[prediction_index, :]
+            prediciton = np.argmax(prediction_logits)
+            prediciton_index += 1
 
 def main(debug=False):
     config = Config()

@@ -82,3 +82,10 @@ import numpy as np
 # # save all the captions to disk:
 # cPickle.dump(test_caption_id_2_caption, open(os.path.join("coco/data/",
 #         "testing"), "wb"))
+
+# from utilities import detokenize_caption
+#
+# vocabulary = cPickle.load(open("coco/data/vocabulary"))
+#
+# caption = detokenize_caption([0, 123, 34, 1, 8473, 2], vocabulary)
+# print caption
