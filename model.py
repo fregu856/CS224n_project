@@ -7,21 +7,22 @@ import time
 import json
 import cPickle
 
-from utilities import train_data_iterator
+from utilities import train_data_iterator, detokenize_caption
 
 class Config(object):
 
     def __init__(self):
         self.dropout = 0.5
-        self.embed_dim = 50
+        self.embed_dim = 300
         self.hidden_dim = 200
         self.batch_size = 256
         self.no_of_epochs = 10
         self.lr = 0.001
         self.img_dim = 2048
-        self.vocab_size = 10000
+        self.vocab_size = 9855
         self.no_of_layers = 1
         self.max_no_of_epochs = 10
+        self.max_caption_length = 20
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
@@ -43,15 +44,15 @@ class Model(object):
 
     def add_placeholders(self):
         self.captions_ph = tf.placeholder(tf.int32,
-                    shape=[None, None],
+                    shape=[self.config.batch_size, None],
                     name="captions_ph")
         self.imgs_ph = tf.placeholder(tf.float32,
-                    shape=[None, self.config.img_dim],
+                    shape=[self.config.batch_size, self.config.img_dim],
                     name="imgs_ph")
         self.labels_ph = tf.placeholder(tf.int32,
-                    shape=[None, None],
+                    shape=[self.config.batch_size, None],
                     name="labels_ph")
-        self.dropout_ph = tf.placholder(tf.float32, name="dropout_ph")
+        self.dropout_ph = tf.placeholder(tf.float32, name="dropout_ph")
 
     def create_feed_dict(self, captions_batch, imgs_batch, labels_batch=None, dropout=1):
         feed_dict = {}
@@ -73,15 +74,14 @@ class Model(object):
 
         with tf.variable_scope("captions_embed"):
             word_embeddings = tf.get_variable("word_embeddings",
-                        self.GloVe_embeddings)
+                        initializer=self.GloVe_embeddings)
             captions_input = tf.nn.embedding_lookup(word_embeddings,
                         self.captions_ph)
 
         self.input = tf.concat(1, [imgs_input, captions_input])
 
     def add_logits(self):
-        LSTM = tf.nn.rnn_cell.BasicLSTMCell(self.config.hiddem_dim,
-                    input_size=self.config.embed_dim)
+        LSTM = tf.nn.rnn_cell.BasicLSTMCell(self.config.hidden_dim)
         LSTM_dropout = tf.nn.rnn_cell.DropoutWrapper(LSTM,
                     input_keep_prob=self.dropout_ph,
                     output_keep_prob=self.dropout_ph)
@@ -126,29 +126,68 @@ class Model(object):
         return batch_losses
 
     def generate_img_caption(self, session, img_vector, vocabulary):
-        caption = np.array([vocabulary.index("<SOS>")])
-        prediciton_index = 1
+        # (the NN always needs to be fed tensors of shape (batch_size, ?), but
+        # the only thing we care about here is the first row)
 
-        while caption[-1] is not vocabulary.index("<EOS>"):
-            feed_dict = self.create_feed_dict(caption, img_vector)
-            logits = session.run([self.logits], feed_dict=feed_dict)
-            prediction_logits = logits[prediction_index, :]
-            prediciton = np.argmax(prediction_logits)
-            prediciton_index += 1
+        # initialize the caption as "<SOS>":
+        caption = np.zeros((self.config.batch_size, 1))
+        caption[0] = np.array(vocabulary.index("<SOS>"))
+        # format the img_vector so it can be fed to the NN:
+        img = np.zeros((self.config.batch_size, self.config.img_dim))
+        img[0] = img_vector
+        # we will get one vector of logits for each timestep, 0: img, 1: "<SOS>",
+        # we want to get the one corr. to "<SOS>":
+        prediction_index = 1
+
+        # predict the next word given the img and the current caption until we
+        # get "<EOS>" or the caption length hits a max value:
+        while caption[0][-1] is not vocabulary.index("<EOS>") and\
+                    caption.shape[1] < self.config.max_caption_length:
+            feed_dict = self.create_feed_dict(caption, img)
+            logits = session.run(self.logits, feed_dict=feed_dict)
+            # (logits[0] = logits vector corr. to the img in ex #1 in the batch,
+            # logits[1] = logits vector corr. to <SOS> in ex #1 in the batch, etc)
+            # get the logits vector corr. to the last word in the current caption:
+            prediction_logits = logits[prediction_index]
+            # get the index of the predicted word:
+            predicted_word_index = np.argmax(prediction_logits)
+            # add the new word to the caption (only care about the first row):
+            new_word_col = np.zeros((self.config.batch_size, 1))
+            new_word_col[0] = np.array(predicted_word_index)
+            caption = np.append(caption, new_word_col, axis=1)
+            # increment prediction_index so that we'll look at the new last word
+            # of the caption in the next iteration:
+            prediction_index += 1
+
+        # get the caption and convert to ints:
+        caption = caption[0].astype(int)
+        # convert the caption to actual text:
+        caption = detokenize_caption(caption, vocabulary)
+
+        return caption
 
 def main(debug=False):
     config = Config()
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
+    GloVe_embeddings = GloVe_embeddings.astype(np.float32)
     model = Model(config, GloVe_embeddings)
 
     epoch_losses = []
     all_results_json = {}
 
-    init = tf.initialize_all_variables()
+    init = tf.global_variables_initializer()
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
         sess.run(init)
+
+        ##### test of generate_img_caption:
+        #test_img_id_2_feature_vector = cPickle.load(open("coco/data/test_img_id_2_feature_vector"))
+        #img_vector = test_img_id_2_feature_vector.items()[0][1]
+        #caption = model.generate_img_caption(sess, img_vector, model.vocabulary)
+        #print caption
+        #####
+
         for epoch in range(config.max_no_of_epochs):
             batch_losses = model.run_epoch(sess)
             epoch_loss = np.mean(batch_losses)

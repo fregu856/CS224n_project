@@ -46,7 +46,7 @@ import numpy as np
 #embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
 
 #val_img_id_2_feature_vector = cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
-#test_img_id_2_feature_vector = cPickle.load(open("coco/data/test_img_id_2_feature_vector"))
+test_img_id_2_feature_vector = cPickle.load(open("coco/data/test_img_id_2_feature_vector"))
 #train_img_id_2_feature_vector = cPickle.load(open("coco/data/train_img_id_2_feature_vector"))
 
 #caption_id = 829719
@@ -89,3 +89,5 @@ import numpy as np
 #
 # caption = detokenize_caption([0, 123, 34, 1, 8473, 2], vocabulary)
 # print caption
+
+print len(test_img_id_2_feature_vector)

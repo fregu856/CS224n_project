@@ -87,6 +87,7 @@ val_img_id_2_feature_vector = extract_img_features(val_img_paths)
 # save on disk:
 cPickle.dump(val_img_id_2_feature_vector,
              open("coco/data/val_img_id_2_feature_vector", "wb"))
+print "val done!"
 
 # define where all test imgs are located:
 test_img_dir = "coco/images/test/"
@@ -98,6 +99,7 @@ test_img_id_2_feature_vector = extract_img_features(test_img_paths)
 # save on disk:
 cPickle.dump(test_img_id_2_feature_vector,
              open("coco/data/test_img_id_2_feature_vector", "wb"))
+print "test done!"
 
 # define where all train imgs are located:
 train_img_dir = "coco/images/train/"
