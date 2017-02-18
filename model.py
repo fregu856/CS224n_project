@@ -6,6 +6,7 @@ import os
 import time
 import json
 import cPickle
+import random
 
 from utilities import train_data_iterator, detokenize_caption
 
@@ -26,6 +27,7 @@ class Config(object):
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
+        self.model_dir = "models/LSTMs/%s" % self.model_name
 
 class Model(object):
 
@@ -166,6 +168,32 @@ class Model(object):
 
         return caption
 
+    def evaluate_on_val(self, session, epoch, vocabulary, val_set_size=5000):
+        eval_list = []
+
+        val_img_id_2_feature_vector =\
+                    cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
+
+        val_img_id_feature_vector_list = val_img_id_2_feature_vector.items()
+        random.shuffle(val_img_id_feature_vector_list)
+        val_set = val_img_id_feature_vector_list[0:val_set_size]
+        for step, (img_id, img_vector) in enumerate(val_set):
+            if step % 1 == 0:
+                print "generating captions on val: %d" % step
+
+            img_caption = self.generate_img_caption(session, img_vector, vocabulary)
+            line = {}
+            line["image_id"] = img_id
+            line["caption"] = img_caption
+            eval_list.append(line)
+
+        results_dir = "%s/results" % self.config.model_dir
+        if not os.path.exists(results_dir):
+            os.mkdir(results_dir)
+        file_name = "%s/val_res_%d.json" % (results_dir, epoch)
+        with open(file_name, "w") as file:
+            json.dump(eval_list, file, sort_keys=True, indent=4)
+
 def main(debug=False):
     config = Config()
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
@@ -188,30 +216,36 @@ def main(debug=False):
         #print caption
         #####
 
-        for epoch in range(config.max_no_of_epochs):
-            batch_losses = model.run_epoch(sess)
-            epoch_loss = np.mean(batch_losses)
-            epoch_losses.append(epoch_loss)
+        ##### test of evaluate_on_val:
+        if not os.path.exists(model.config.model_dir):
+            os.mkdir(model.config.model_dir)
+        print "starting test"
+        model.evaluate_on_val(sess, 1, model.vocabulary, val_set_size=2)
+        #####
 
-            if not os.path.exists(config.model_name):
-                os.mkdir(config.model_name)
-            if not os.path.exists("%s/weights" % config.model_name):
-                os.mkdir("%/weights" % config.model_name)
-            saver.save(sess, "%s/weights/model" % config.model_name,
-                    global_step=epoch)
-
-            if not os.path.exists("%s/loss" % config.model_name):
-                os.mkdir("%s/loss" %config.model_name)
-            cPickle.dump(epoch_losses, open("%s/loss/epoch_losses" % config.model_name, "w"))
-
-            generate_captions_val(sess, model, epoch)
-            results_file = "%s/results/val_res_%d.json" %(config.model_name,
-                    epoch)
-            results = evaluateModel(results_file)
-            all_results_json[epoch] = results
-
-            with open("%s/results/evaluation_val.json" % config.model_name, 'w') as file:
-                json.dump(all_results_json, file, sort_keys=True, indent=4)
+        # for epoch in range(config.max_no_of_epochs):
+        #     batch_losses = model.run_epoch(sess)
+        #     epoch_loss = np.mean(batch_losses)
+        #     epoch_losses.append(epoch_loss)
+        #
+        #     if not os.path.exists(model.config.model_dir):
+        #         os.mkdir(model.config.model_dir)
+        #     if not os.path.exists("%s/weights" % model.config.model_dir):
+        #         os.mkdir("%s/weights" % model.config.model_dir)
+        #     saver.save(sess, "%s/weights/model" % model.config.model_dir, global_step=epoch)
+        #
+        #     if not os.path.exists("%s/loss" % model.config.model_dir):
+        #         os.mkdir("%s/loss" % model.config.model_dir)
+        #     cPickle.dump(epoch_losses, open("%s/loss/epoch_losses" % model.config.model_dir, "w"))
+        #
+        #     #generate_captions_val(sess, model, epoch)
+        #     #results_file = "%s/results/val_res_%d.json" %(config.model_name,
+        #     #        epoch)
+        #     #results = evaluateModel(results_file)
+        #     #all_results_json[epoch] = results
+        #
+        #     #with open("%s/results/evaluation_val.json" % config.model_name, 'w') as file:
+        #     #    json.dump(all_results_json, file, sort_keys=True, indent=4)
 
 if __name__ == '__main__':
     main()
