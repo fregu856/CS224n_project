@@ -9,9 +9,12 @@ sys.path.append("/home/fregu856/CS224n/project/CS224n_project/coco/PythonAPI")
 from pycocotools.coco import COCO
 
 # add the "coco-caption" dir to the path so that "pycocoevalcap" can be found:
-import sys
 sys.path.append("/home/fregu856/CS224n/project/CS224n_project/coco/coco-caption")
 from pycocoevalcap.eval import COCOEvalCap
+
+import json
+from json import encoder
+encoder.FLOAT_REPR = lambda o: format(o, '.3f')
 
 def get_batches(config_obj):
     batch_size = config_obj.batch_size
@@ -124,4 +127,19 @@ def detokenize_caption(tokenized_caption, vocabulary):
 
     return caption
 
-def evaluate_on_val(file_name):
+def evaluate_captions(captions_file):
+    # define where the ground truth captions for the val imgs are located:
+    true_captions_file = "coco/annotations/captions_val2014.json"
+
+    coco = COCO(true_captions_file)
+    cocoRes = coco.loadRes(captions_file)
+    cocoEval = COCOEvalCap(coco, cocoRes)
+
+    # set the imgs to be evaluated to the ones we have generated captions for:
+    cocoEval.params["image_id"] = cocoRes.getImgIds()
+    # evaluate the captions (compute metrics):
+    cocoEval.evaluate()
+    # get the dict containing all computed metrics and metric scores:
+    results_dict = cocoEval.eval
+
+    return results_dict

@@ -8,7 +8,7 @@ import json
 import cPickle
 import random
 
-from utilities import train_data_iterator, detokenize_caption, evaluate_on_val
+from utilities import train_data_iterator, detokenize_caption, evaluate_captions
 
 class Config(object):
 
@@ -22,7 +22,7 @@ class Config(object):
         self.img_dim = 2048
         self.vocab_size = 9855
         self.no_of_layers = 1
-        self.max_no_of_epochs = 10
+        self.max_no_of_epochs = 2
         self.max_caption_length = 20
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
@@ -34,12 +34,33 @@ class Model(object):
     def __init__(self, config, GloVe_embeddings):
         self.GloVe_embeddings = GloVe_embeddings
         self.config = config
+        self.create_model_dirs()
         self.load_utilities_data()
         self.add_placeholders()
         self.add_input()
         self.add_logits()
         self.add_loss_op()
         self.add_training_op()
+
+    def create_model_dirs(self):
+        if not os.path.exists(self.config.model_dir):
+            os.mkdir(self.config.model_dir)
+
+        # create the dir where model weights will be saved during training:
+        if not os.path.exists("%s/weights" % self.config.model_dir):
+            os.mkdir("%s/weights" % self.config.model_dir)
+
+        # create the dir where generated captions will be saved during training:
+        if not os.path.exists("%s/generated_captions" % self.config.model_dir):
+            os.mkdir("%s/generated_captions" % self.config.model_dir)
+
+        # create the dir where epoch losses will be saved during training:
+        if not os.path.exists("%s/losses" % self.config.model_dir):
+            os.mkdir("%s/losses" % self.config.model_dir)
+
+        # create the dir where evaluation metrics will be saved during training:
+        if not os.path.exists("%s/eval_results" % self.config.model_dir):
+            os.mkdir("%s/eval_results" % self.config.model_dir)
 
     def load_utilities_data(self):
         self.vocabulary = cPickle.load(open("coco/data/vocabulary"))
@@ -168,33 +189,40 @@ class Model(object):
 
         return caption
 
-    def generate_captions_for_val(self, session, epoch, vocabulary, val_set_size=5000):
-        eval_list = []
-
+    def generate_captions_on_val(self, session, epoch, vocabulary, val_set_size=5000):
+        # get the map from img id to feature vector:
         val_img_id_2_feature_vector =\
                     cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
-
-        val_img_id_feature_vector_list = val_img_id_2_feature_vector.items()
+        # turn the map into a list of tuples (to make it iterable):
+        val_img_id_feature_vector_list = val_img_id_2_feature_vector.items()\
+        # randomly shuffle the list of tuples (to take different subsets when
+        # val_set_size is not set to 5000):
         random.shuffle(val_img_id_feature_vector_list)
+        # take a subset (of size val_set_size) of all val imgs:
         val_set = val_img_id_feature_vector_list[0:val_set_size]
+
+        captions = []
         for step, (img_id, img_vector) in enumerate(val_set):
-            if step % 1 == 0:
+            if step % 10 == 0:
                 print "generating captions on val: %d" % step
 
+            # generate a caption for the img:
             img_caption = self.generate_img_caption(session, img_vector, vocabulary)
-            line = {}
-            line["image_id"] = img_id
-            line["caption"] = img_caption
-            eval_list.append(line)
+            # save the generated caption together with the img id in the format
+            # expected by the COCO evaluation script:
+            caption_obj = {}
+            caption_obj["image_id"] = img_id
+            caption_obj["caption"] = img_caption
+            captions.append(caption_obj)
 
-        results_dir = "%s/results" % self.config.model_dir
-        if not os.path.exists(results_dir):
-            os.mkdir(results_dir)
-        file_name = "%s/val_res_%d.json" % (results_dir, epoch)
-        with open(file_name, "w") as file:
-            json.dump(eval_list, file, sort_keys=True, indent=4)
+        # save the captions as a json file (will be used by the eval script):
+        captions_file = "%s/generated_captions/captions_%d.json"\
+                    % (self.config.model_dir, epoch)
+        with open(captions_file, "w") as file:
+            json.dump(captions, file, sort_keys=True, indent=4)
 
-        return file_name
+        # return the name of the json file:
+        return captions_file
 
 def main(debug=False):
     config = Config()
@@ -202,8 +230,8 @@ def main(debug=False):
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
     model = Model(config, GloVe_embeddings)
 
-    epoch_losses = []
-    all_results_json = {}
+    loss_per_epoch = []
+    eval_metrics_per_epoch = {}
 
     init = tf.global_variables_initializer()
     saver = tf.train.Saver()
@@ -211,44 +239,32 @@ def main(debug=False):
     with tf.Session() as sess:
         sess.run(init)
 
-        ##### test of generate_img_caption:
-        #test_img_id_2_feature_vector = cPickle.load(open("coco/data/test_img_id_2_feature_vector"))
-        #img_vector = test_img_id_2_feature_vector.items()[0][1]
-        #caption = model.generate_img_caption(sess, img_vector, model.vocabulary)
-        #print caption
-        #####
+        for epoch in range(config.max_no_of_epochs):
+            # run an epoch and get all losses:
+            #batch_losses = model.run_epoch(sess)
 
-        ##### test of evaluate_on_val:
-        if not os.path.exists(model.config.model_dir):
-            os.mkdir(model.config.model_dir)
-        print "starting test"
-        file_name = model.generate_captions_for_val(sess, 1, model.vocabulary,
-                    val_set_size=2)
-        #####
+            # compute the epoch loss:
+            #epoch_loss = np.mean(batch_losses)
+            # save the epoch loss:
+            #loss_per_epoch.append(epoch_loss)
+            # save the epoch losses to disk:
+            cPickle.dump(loss_per_epoch, open("%s/losses/loss_per_epoch_%d"\
+                        % (model.config.model_dir, epoch), "w"))
 
-        # for epoch in range(config.max_no_of_epochs):
-        #     batch_losses = model.run_epoch(sess)
-        #     epoch_loss = np.mean(batch_losses)
-        #     epoch_losses.append(epoch_loss)
-        #
-        #     if not os.path.exists(model.config.model_dir):
-        #         os.mkdir(model.config.model_dir)
-        #     if not os.path.exists("%s/weights" % model.config.model_dir):
-        #         os.mkdir("%s/weights" % model.config.model_dir)
-        #     saver.save(sess, "%s/weights/model" % model.config.model_dir, global_step=epoch)
-        #
-        #     if not os.path.exists("%s/loss" % model.config.model_dir):
-        #         os.mkdir("%s/loss" % model.config.model_dir)
-        #     cPickle.dump(epoch_losses, open("%s/loss/epoch_losses" % model.config.model_dir, "w"))
-        #
-        #     #generate_captions_val(sess, model, epoch)
-        #     #results_file = "%s/results/val_res_%d.json" %(config.model_name,
-        #     #        epoch)
-        #     #results = evaluateModel(results_file)
-        #     #all_results_json[epoch] = results
-        #
-        #     #with open("%s/results/evaluation_val.json" % config.model_name, 'w') as file:
-        #     #    json.dump(all_results_json, file, sort_keys=True, indent=4)
+            # generate captions on a (subset) of val:
+            captions_file = model.generate_captions_on_val(sess, epoch,
+                        model.vocabulary, val_set_size=1)
+            # evaluate the generated captions (compute metrics):
+            eval_result_dict = evaluate_captions(captions_file)
+            # save the epoch evaluation metrics:
+            eval_metrics_per_epoch[epoch] = eval_result_dict
+            # save the evaluation metrics for epochs to disk:
+            cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch_%d"\
+                        % (model.config.model_dir, epoch), "w"))
+
+            # save the model weights to disk:
+            saver.save(sess, "%s/weights/model" % model.config.model_dir,
+                        global_step=epoch)
 
 if __name__ == '__main__':
     main()
