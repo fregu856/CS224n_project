@@ -54,5 +54,5 @@ For evaluation of captions:
 Clone coco-caption and place in the coco folder in the project directory:  
 https://github.com/tylin/coco-caption  
 Make sure java is installed:  
-sudo apt-get install default-jdk  
+$ sudo apt-get install default-jdk  
 
