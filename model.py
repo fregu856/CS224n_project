@@ -8,7 +8,7 @@ import json
 import cPickle
 import random
 
-from utilities import train_data_iterator, detokenize_caption
+from utilities import train_data_iterator, detokenize_caption, evaluate_on_val
 
 class Config(object):
 
@@ -168,7 +168,7 @@ class Model(object):
 
         return caption
 
-    def evaluate_on_val(self, session, epoch, vocabulary, val_set_size=5000):
+    def generate_captions_for_val(self, session, epoch, vocabulary, val_set_size=5000):
         eval_list = []
 
         val_img_id_2_feature_vector =\
@@ -193,6 +193,8 @@ class Model(object):
         file_name = "%s/val_res_%d.json" % (results_dir, epoch)
         with open(file_name, "w") as file:
             json.dump(eval_list, file, sort_keys=True, indent=4)
+
+        return file_name
 
 def main(debug=False):
     config = Config()
@@ -220,7 +222,8 @@ def main(debug=False):
         if not os.path.exists(model.config.model_dir):
             os.mkdir(model.config.model_dir)
         print "starting test"
-        model.evaluate_on_val(sess, 1, model.vocabulary, val_set_size=2)
+        file_name = model.generate_captions_for_val(sess, 1, model.vocabulary,
+                    val_set_size=2)
         #####
 
         # for epoch in range(config.max_no_of_epochs):

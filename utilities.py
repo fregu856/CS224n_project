@@ -3,6 +3,16 @@ import numpy as np
 import os
 import random
 
+# add the "PythonAPI" dir to the path so that "pycocotools" can be found:
+import sys
+sys.path.append("/home/fregu856/CS224n/project/CS224n_project/coco/PythonAPI")
+from pycocotools.coco import COCO
+
+# add the "coco-caption" dir to the path so that "pycocoevalcap" can be found:
+import sys
+sys.path.append("/home/fregu856/CS224n/project/CS224n_project/coco/coco-caption")
+from pycocoevalcap.eval import COCOEvalCap
+
 def get_batches(config_obj):
     batch_size = config_obj.batch_size
 
@@ -113,3 +123,5 @@ def detokenize_caption(tokenized_caption, vocabulary):
     caption = " ".join(caption_vector)
 
     return caption
+
+def evaluate_on_val(file_name):
