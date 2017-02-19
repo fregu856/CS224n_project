@@ -46,5 +46,11 @@ https://github.com/pdollar/coco/blob/master/PythonAPI/pycocoDemo.ipynb
 *******
 
 Really good and intuitive explanation of LSTM:s (by far the best LSTM:s diagrams I've seen):  
-http://colah.github.io/posts/2015-08-Understanding-LSTMs/
+http://colah.github.io/posts/2015-08-Understanding-LSTMs/  
+
+*******
+For evaluation of captions:  
+
+Clone coco-caption and place in the coco folder in the project directory:  
+https://github.com/tylin/coco-caption
 
