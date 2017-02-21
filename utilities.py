@@ -16,21 +16,16 @@ import json
 from json import encoder
 encoder.FLOAT_REPR = lambda o: format(o, '.3f')
 
-def get_batches(config_obj):
-    batch_size = config_obj.batch_size
-
-    caption_length_2_caption_ids =\
-            cPickle.load(open("coco/data/train_caption_length_2_caption_ids"))
-    caption_length_2_no_of_captions =\
-            cPickle.load(open("coco/data/train_caption_length_2_no_of_captions"))
+def get_batches(model_obj):
+    batch_size = model_obj.config.batch_size
 
     # group all caption ids in batches:
     batches_of_caption_ids = []
-    for caption_length in caption_length_2_no_of_captions:
-        caption_ids = caption_length_2_caption_ids[caption_length]
+    for caption_length in model_obj.caption_length_2_no_of_captions:
+        caption_ids = model_obj.caption_length_2_caption_ids[caption_length]
         # randomly shuffle the order of the caption ids:
         random.shuffle(caption_ids)
-        no_of_captions = caption_length_2_no_of_captions[caption_length]
+        no_of_captions = model_obj.caption_length_2_no_of_captions[caption_length]
         no_of_full_batches = int(no_of_captions/batch_size)
 
         # add all full batches to batches_of_caption_ids:
@@ -48,12 +43,11 @@ def get_batches(config_obj):
 
     return batches_of_caption_ids
 
-def get_batch_ph_data(batch_caption_ids, config_obj, caption_id_2_img_id,
-            train_img_id_2_feature_vector, train_caption_id_2_caption):
+def get_batch_ph_data(model_obj, batch_caption_ids):
     # get the dimension parameters:
-    batch_size = config_obj.batch_size
-    img_dim = config_obj.img_dim
-    caption_length = len(train_caption_id_2_caption[batch_caption_ids[0]])
+    batch_size = model_obj.config.batch_size
+    img_dim = model_obj.config.img_dim
+    caption_length = len(model_obj.train_caption_id_2_caption[batch_caption_ids[0]])
 
     captions = np.zeros((batch_size, caption_length))
     # (row i of captions will be the tokenized caption for ex i in the batch)
@@ -65,9 +59,9 @@ def get_batch_ph_data(batch_caption_ids, config_obj, caption_id_2_img_id,
     # pupulate the return data:
     for i in range(len(batch_caption_ids)):
         caption_id = batch_caption_ids[i]
-        img_id = caption_id_2_img_id[caption_id]
-        img_vector = train_img_id_2_feature_vector[img_id]
-        caption = train_caption_id_2_caption[caption_id]
+        img_id = model_obj.caption_id_2_img_id[caption_id]
+        img_vector = model_obj.train_img_id_2_feature_vector[img_id]
+        caption = model_obj.train_caption_id_2_caption[caption_id]
 
         captions[i] = caption
         img_vectors[i] = img_vector
@@ -90,23 +84,14 @@ def get_batch_ph_data(batch_caption_ids, config_obj, caption_id_2_img_id,
 
     return captions, img_vectors, labels
 
-def train_data_iterator(config_obj):
+def train_data_iterator(model_obj):
     # get the batches of caption ids:
-    batches_of_caption_ids = get_batches(config_obj)
-
-    # load data to map from caption id to img feature vector:
-    caption_id_2_img_id = cPickle.load(open("coco/data/caption_id_2_img_id"))
-    train_img_id_2_feature_vector =\
-                cPickle.load(open("coco/data/train_img_id_2_feature_vector"))
-    # load data to map from caption id to caption:
-    train_caption_id_2_caption =\
-                cPickle.load(open("coco/data/train_caption_id_2_caption"))
+    batches_of_caption_ids = get_batches(model_obj)
 
     for batch_of_caption_ids in batches_of_caption_ids:
         # get the batch's data in a format ready to be fed into the placeholders:
-        captions, img_vectors, labels = get_batch_ph_data(batch_of_caption_ids,
-                    config_obj, caption_id_2_img_id,
-                    train_img_id_2_feature_vector, train_caption_id_2_caption)
+        captions, img_vectors, labels = get_batch_ph_data(model_obj,
+                    batch_of_caption_ids)
 
         # yield the data to enable iteration (will be able to do:
         # for captions, img_vector, labels in train_data_iterator(config):)

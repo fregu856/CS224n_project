@@ -46,7 +46,7 @@ import numpy as np
 #embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
 
 #val_img_id_2_feature_vector = cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
-test_img_id_2_feature_vector = cPickle.load(open("coco/data/test_img_id_2_feature_vector"))
+#test_img_id_2_feature_vector = cPickle.load(open("coco/data/test_img_id_2_feature_vector"))
 #train_img_id_2_feature_vector = cPickle.load(open("coco/data/train_img_id_2_feature_vector"))
 
 #caption_id = 829719
@@ -90,4 +90,30 @@ test_img_id_2_feature_vector = cPickle.load(open("coco/data/test_img_id_2_featur
 # caption = detokenize_caption([0, 123, 34, 1, 8473, 2], vocabulary)
 # print caption
 
-print len(test_img_id_2_feature_vector)
+# val_caption_id_2_caption = cPickle.load(open("coco/data/val_caption_id_2_caption"))
+# vocabulary = cPickle.load(open("coco/data/vocabulary"))
+#
+#  # tokenize all train captions:
+# for step, caption_id in enumerate(val_caption_id_2_caption):
+#     if step % 1000 == 0:
+#         print "train, tokenizing: ", step
+# 
+#     caption = val_caption_id_2_caption[caption_id]
+#
+#     # tokenize the caption:
+#     tokenized_caption = []
+#     for word in caption:
+#         if word in vocabulary:
+#             word_index = vocabulary.index(word)
+#         else:
+#             word_index = 1
+#         tokenized_caption.append(word_index)
+#
+#     # convert into a numpy array:
+#     tokenized_caption = np.array(tokenized_caption)
+#     # save:
+#     val_caption_id_2_caption[caption_id] = tokenized_caption
+# data_dir = "coco/data/"
+#
+# cPickle.dump(val_caption_id_2_caption, open(os.path.join(data_dir,
+#         "val_caption_id_2_caption"), "wb"))

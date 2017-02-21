@@ -17,7 +17,6 @@ class Config(object):
         self.embed_dim = 300
         self.hidden_dim = 200
         self.batch_size = 256
-        self.no_of_epochs = 10
         self.lr = 0.001
         self.img_dim = 2048
         self.vocab_size = 9855
@@ -31,11 +30,11 @@ class Config(object):
 
 class Model(object):
 
-    def __init__(self, config, GloVe_embeddings):
+    def __init__(self, config, GloVe_embeddings, debug=False):
         self.GloVe_embeddings = GloVe_embeddings
         self.config = config
         self.create_model_dirs()
-        self.load_utilities_data()
+        self.load_utilities_data(debug)
         self.add_placeholders()
         self.add_input()
         self.add_logits()
@@ -62,8 +61,43 @@ class Model(object):
         if not os.path.exists("%s/eval_results" % self.config.model_dir):
             os.mkdir("%s/eval_results" % self.config.model_dir)
 
-    def load_utilities_data(self):
+    def load_utilities_data(self, debug):
+        print "loading utilities data..."
+
+        # load the vocabulary:
         self.vocabulary = cPickle.load(open("coco/data/vocabulary"))
+
+        # load data to map from caption id to img feature vector:
+        self.caption_id_2_img_id =\
+                    cPickle.load(open("coco/data/caption_id_2_img_id"))
+        if debug:
+            self.train_img_id_2_feature_vector =\
+                    cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
+        else:
+            self.train_img_id_2_feature_vector =\
+                    cPickle.load(open("coco/data/train_img_id_2_feature_vector"))
+
+        # load data to map from caption id to caption:
+        if debug:
+            self.train_caption_id_2_caption =\
+                    cPickle.load(open("coco/data/val_caption_id_2_caption"))
+        else:
+            self.train_caption_id_2_caption =\
+                    cPickle.load(open("coco/data/train_caption_id_2_caption"))
+
+        # load data needed to create batches:
+        if debug:
+            self.caption_length_2_caption_ids =\
+                cPickle.load(open("coco/data/val_caption_length_2_caption_ids"))
+            self.caption_length_2_no_of_captions =\
+                cPickle.load(open("coco/data/val_caption_length_2_no_of_captions"))
+        else:
+            self.caption_length_2_caption_ids =\
+                cPickle.load(open("coco/data/train_caption_length_2_caption_ids"))
+            self.caption_length_2_no_of_captions =\
+                cPickle.load(open("coco/data/train_caption_length_2_no_of_captions"))
+
+        print "all utilities data is loaded!"
 
     def add_placeholders(self):
         self.captions_ph = tf.placeholder(tf.int32,
@@ -90,8 +124,10 @@ class Model(object):
     def add_input(self):
         with tf.variable_scope("img_transform"):
             W_img = tf.get_variable("W_img",
-                        shape=[self.config.img_dim, self.config.embed_dim])
-            b_img = tf.get_variable("b_img", shape=[self.config.embed_dim])
+                        shape=[self.config.img_dim, self.config.embed_dim],
+                        initializer=tf.contrib.layers.xavier_initializer())
+            b_img = tf.get_variable("b_img", shape=[1, self.config.embed_dim],
+                        initializer=tf.constant_initializer(0))
             imgs_input = tf.nn.sigmoid(tf.matmul(self.imgs_ph, W_img) + b_img)
             imgs_input = tf.expand_dims(imgs_input, 1)
 
@@ -118,15 +154,25 @@ class Model(object):
 
         with tf.variable_scope("logits"):
             W_logits = tf.get_variable("W_logits",
-                        shape=[self.config.hidden_dim, self.config.vocab_size])
+                        shape=[self.config.hidden_dim, self.config.vocab_size],
+                        initializer=tf.contrib.layers.xavier_initializer())
             b_logits = tf.get_variable("b_logits",
-                        shape=[self.config.vocab_size])
+                        shape=[1, self.config.vocab_size],
+                        initializer=tf.constant_initializer(0))
             self.logits = tf.matmul(output, W_logits) + b_logits
 
     def add_loss_op(self):
         labels = tf.reshape(self.labels_ph, [-1])
+
+        # remove all -1 labels and their corresponding logits (-1 labels
+        # correspond to the img or <EOS> step, the predicitons at these
+        # steps are irrelevant):
+        mask = tf.greater_equal(labels, 0)
+        masked_labels = tf.boolean_mask(labels, mask)
+        masked_logits = tf.boolean_mask(self.logits, mask)
+
         loss_per_word = tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    self.logits, labels)
+                    masked_logits, masked_labels)
         loss = tf.reduce_mean(loss_per_word)
 
         self.loss = loss
@@ -139,12 +185,16 @@ class Model(object):
         batch_losses = []
         start_time = time.time()
 
-        for step, (captions, imgs, labels) in enumerate(train_data_iterator(self.config)):
-            feed_dict = self.create_feed_dict(captions, imgs, labels_batch=labels,
-                        dropout=self.config.dropout)
+        for step, (captions, imgs, labels) in enumerate(train_data_iterator(self)):
+            print "batch: %d" % step
+
+            feed_dict = self.create_feed_dict(captions, imgs,
+                        labels_batch=labels, dropout=self.config.dropout)
             batch_loss, _ = session.run([self.loss, self.train_op],
                         feed_dict=feed_dict)
             batch_losses.append(batch_loss)
+
+            print batch_loss
 
         return batch_losses
 
@@ -228,7 +278,7 @@ def main(debug=False):
     config = Config()
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
-    model = Model(config, GloVe_embeddings)
+    model = Model(config, GloVe_embeddings, debug=True)
 
     loss_per_epoch = []
     eval_metrics_per_epoch = {}
@@ -240,13 +290,15 @@ def main(debug=False):
         sess.run(init)
 
         for epoch in range(config.max_no_of_epochs):
+            print "epoch: %d/%d" % (epoch, config.max_no_of_epochs-1)
+
             # run an epoch and get all losses:
-            #batch_losses = model.run_epoch(sess)
+            batch_losses = model.run_epoch(sess)
 
             # compute the epoch loss:
-            #epoch_loss = np.mean(batch_losses)
+            epoch_loss = np.mean(batch_losses)
             # save the epoch loss:
-            #loss_per_epoch.append(epoch_loss)
+            loss_per_epoch.append(epoch_loss)
             # save the epoch losses to disk:
             cPickle.dump(loss_per_epoch, open("%s/losses/loss_per_epoch_%d"\
                         % (model.config.model_dir, epoch), "w"))
