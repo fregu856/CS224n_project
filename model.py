@@ -9,7 +9,7 @@ import cPickle
 import random
 
 from utilities import train_data_iterator, detokenize_caption, evaluate_captions
-from utilities import plot_performance
+from utilities import plot_performance, compare_captions
 
 class Config(object):
 
@@ -31,16 +31,19 @@ class Config(object):
 
 class Model(object):
 
-    def __init__(self, config, GloVe_embeddings, debug=False):
+    def __init__(self, config, GloVe_embeddings, debug=False, mode="training"):
         self.GloVe_embeddings = GloVe_embeddings
+        self.debug = debug
         self.config = config
-        self.create_model_dirs()
-        self.load_utilities_data(debug)
+        if mode is not "demo":
+            self.create_model_dirs()
+            self.load_utilities_data()
         self.add_placeholders()
         self.add_input()
         self.add_logits()
-        self.add_loss_op()
-        self.add_training_op()
+        if mode is not "demo":
+            self.add_loss_op()
+            self.add_training_op()
 
     def create_model_dirs(self):
         if not os.path.exists(self.config.model_dir):
@@ -66,7 +69,7 @@ class Model(object):
         if not os.path.exists("%s/plots" % self.config.model_dir):
             os.mkdir("%s/plots" % self.config.model_dir)
 
-    def load_utilities_data(self, debug):
+    def load_utilities_data(self):
         print "loading utilities data..."
 
         # load the vocabulary:
@@ -75,7 +78,7 @@ class Model(object):
         # load data to map from caption id to img feature vector:
         self.caption_id_2_img_id =\
                     cPickle.load(open("coco/data/caption_id_2_img_id"))
-        if debug:
+        if self.debug:
             self.train_img_id_2_feature_vector =\
                     cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
         else:
@@ -83,7 +86,7 @@ class Model(object):
                     cPickle.load(open("coco/data/train_img_id_2_feature_vector"))
 
         # load data to map from caption id to caption:
-        if debug:
+        if self.debug:
             self.train_caption_id_2_caption =\
                     cPickle.load(open("coco/data/val_caption_id_2_caption"))
         else:
@@ -91,7 +94,7 @@ class Model(object):
                     cPickle.load(open("coco/data/train_caption_id_2_caption"))
 
         # load data needed to create batches:
-        if debug:
+        if self.debug:
             self.caption_length_2_caption_ids =\
                 cPickle.load(open("coco/data/val_caption_length_2_caption_ids"))
             self.caption_length_2_no_of_captions =\
@@ -200,6 +203,9 @@ class Model(object):
             if step % 10 == 0:
                 print "batch: %d | loss: %f" % (step, batch_loss)
 
+            if step > 4 and self.debug:
+                break
+
         return batch_losses
 
     def generate_img_caption(self, session, img_vector, vocabulary):
@@ -218,7 +224,7 @@ class Model(object):
 
         # predict the next word given the img and the current caption until we
         # get "<EOS>" or the caption length hits a max value:
-        while caption[0][-1] is not vocabulary.index("<EOS>") and\
+        while int(caption[0][-1]) is not vocabulary.index("<EOS>") and\
                     caption.shape[1] < self.config.max_caption_length:
             feed_dict = self.create_feed_dict(caption, img)
             logits = session.run(self.logits, feed_dict=feed_dict)
@@ -244,6 +250,9 @@ class Model(object):
         return caption
 
     def generate_captions_on_val(self, session, epoch, vocabulary, val_set_size=5000):
+        if self.debug:
+            val_set_size = 2
+
         # get the map from img id to feature vector:
         val_img_id_2_feature_vector =\
                     cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
@@ -312,7 +321,7 @@ def main(debug=False):
 
             # generate captions on a (subset) of val:
             captions_file = model.generate_captions_on_val(sess, epoch,
-                        model.vocabulary, val_set_size=200)
+                        model.vocabulary, val_set_size=25)
             # evaluate the generated captions (compute metrics):
             eval_result_dict = evaluate_captions(captions_file)
             # save the epoch evaluation metrics:
@@ -329,6 +338,8 @@ def main(debug=False):
 
     # plot the loss and the different metrics vs epoch:
     plot_performance(config.model_dir)
+
+    #compare_captions(config.model_dir, 3)
 
 if __name__ == '__main__':
     main()

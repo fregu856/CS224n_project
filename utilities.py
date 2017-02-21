@@ -3,6 +3,7 @@ import numpy as np
 import os
 import random
 import matplotlib.pyplot as plt
+import skimage.io as io
 
 # add the "PythonAPI" dir to the path so that "pycocotools" can be found:
 import sys
@@ -61,7 +62,10 @@ def get_batch_ph_data(model_obj, batch_caption_ids):
     for i in range(len(batch_caption_ids)):
         caption_id = batch_caption_ids[i]
         img_id = model_obj.caption_id_2_img_id[caption_id]
-        img_vector = model_obj.train_img_id_2_feature_vector[img_id]
+        if img_id in model_obj.train_img_id_2_feature_vector:
+            img_vector = model_obj.train_img_id_2_feature_vector[img_id]
+        else:
+            img_vector = np.zeros((1, img_dim))
         caption = model_obj.train_caption_id_2_caption[caption_id]
 
         captions[i] = caption
@@ -191,3 +195,28 @@ def plot_performance(model_dir):
     plt.xlabel("epoch")
     plt.title("METEOR per epoch")
     plt.savefig("%s/plots/METEOR_per_epoch.png" % model_dir)
+
+def compare_captions(model_dir, epoch):
+    true_captions_file = "coco/annotations/captions_val2014.json"
+
+    coco = COCO(true_captions_file)
+    cocoRes = coco.loadRes("%s/generated_captions/captions_%d.json" % (model_dir, epoch))
+
+    img_ids = cocoRes.getImgIds()
+    imgId = img_ids[175]
+
+    print "ground truth captions:"
+    annIds = coco.getAnnIds(imgIds=imgId)
+    anns = coco.loadAnns(annIds)
+    coco.showAnns(anns)
+
+    print "generated caption:"
+    annIds = cocoRes.getAnnIds(imgIds=imgId)
+    anns = cocoRes.loadAnns(annIds)
+    coco.showAnns(anns)
+
+    img = coco.loadImgs(imgId)[0]
+    I = io.imread("coco/images/val/%s" % img["file_name"])
+    plt.imshow(I)
+    plt.axis('off')
+    plt.show()
