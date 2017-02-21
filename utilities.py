@@ -2,6 +2,7 @@ import cPickle
 import numpy as np
 import os
 import random
+import matplotlib.pyplot as plt
 
 # add the "PythonAPI" dir to the path so that "pycocotools" can be found:
 import sys
@@ -128,3 +129,65 @@ def evaluate_captions(captions_file):
     results_dict = cocoEval.eval
 
     return results_dict
+
+def plot_performance(model_dir):
+    # load the saved performance data:
+    metrics_per_epoch = cPickle.load(open("%s/eval_results/metrics_per_epoch"\
+                % model_dir))
+    loss_per_epoch = cPickle.load(open("%s/losses/loss_per_epoch" % model_dir))
+
+    # separate the data for the different metrics:
+    CIDEr_per_epoch = []
+    Bleu_4_per_epoch = []
+    ROUGE_L_per_epoch = []
+    METEOR_per_epoch = []
+    for epoch_metrics in metrics_per_epoch:
+        CIDEr_per_epoch.append(epoch_metrics["CIDEr"])
+        Bleu_4_per_epoch.append(epoch_metrics["Bleu_4"])
+        ROUGE_L_per_epoch.append(epoch_metrics["ROUGE_L"])
+        METEOR_per_epoch.append(epoch_metrics["METEOR"])
+
+    # plot the loss vs epoch:
+    plt.figure(1)
+    plt.plot(loss_per_epoch, "k^")
+    plt.plot(loss_per_epoch, "k")
+    plt.ylabel("loss")
+    plt.xlabel("epoch")
+    plt.title("loss per epoch")
+    plt.savefig("%s/plots/loss_per_epoch.png" % model_dir)
+
+    # plot CIDEr vs epoch:
+    plt.figure(2)
+    plt.plot(CIDEr_per_epoch, "k^")
+    plt.plot(CIDEr_per_epoch, "k")
+    plt.ylabel("CIDEr")
+    plt.xlabel("epoch")
+    plt.title("CIDEr per epoch")
+    plt.savefig("%s/plots/CIDEr_per_epoch.png" % model_dir)
+
+    # plot Bleu_4 vs epoch:
+    plt.figure(3)
+    plt.plot(Bleu_4_per_epoch, "k^")
+    plt.plot(Bleu_4_per_epoch, "k")
+    plt.ylabel("Bleu_4")
+    plt.xlabel("epoch")
+    plt.title("Bleu_4 per epoch")
+    plt.savefig("%s/plots/Bleu_4_per_epoch.png" % model_dir)
+
+    # plot ROUGE_L vs epoch:
+    plt.figure(4)
+    plt.plot(ROUGE_L_per_epoch, "k^")
+    plt.plot(ROUGE_L_per_epoch, "k")
+    plt.ylabel("ROUGE_L")
+    plt.xlabel("epoch")
+    plt.title("ROUGE_L per epoch")
+    plt.savefig("%s/plots/ROUGE_L_per_epoch.png" % model_dir)
+
+    # plot METEOR vs epoch:
+    plt.figure(5)
+    plt.plot(METEOR_per_epoch, "k^")
+    plt.plot(METEOR_per_epoch, "k")
+    plt.ylabel("METEOR")
+    plt.xlabel("epoch")
+    plt.title("METEOR per epoch")
+    plt.savefig("%s/plots/METEOR_per_epoch.png" % model_dir)

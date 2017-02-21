@@ -9,6 +9,7 @@ import cPickle
 import random
 
 from utilities import train_data_iterator, detokenize_caption, evaluate_captions
+from utilities import plot_performance
 
 class Config(object):
 
@@ -21,8 +22,8 @@ class Config(object):
         self.img_dim = 2048
         self.vocab_size = 9855
         self.no_of_layers = 1
-        self.max_no_of_epochs = 2
-        self.max_caption_length = 20
+        self.max_no_of_epochs = 50
+        self.max_caption_length = 30
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
@@ -60,6 +61,10 @@ class Model(object):
         # create the dir where evaluation metrics will be saved during training:
         if not os.path.exists("%s/eval_results" % self.config.model_dir):
             os.mkdir("%s/eval_results" % self.config.model_dir)
+
+        # create the dir where performance plots will be saved during training:
+        if not os.path.exists("%s/plots" % self.config.model_dir):
+            os.mkdir("%s/plots" % self.config.model_dir)
 
     def load_utilities_data(self, debug):
         print "loading utilities data..."
@@ -186,15 +191,14 @@ class Model(object):
         start_time = time.time()
 
         for step, (captions, imgs, labels) in enumerate(train_data_iterator(self)):
-            print "batch: %d" % step
-
             feed_dict = self.create_feed_dict(captions, imgs,
                         labels_batch=labels, dropout=self.config.dropout)
             batch_loss, _ = session.run([self.loss, self.train_op],
                         feed_dict=feed_dict)
             batch_losses.append(batch_loss)
 
-            print batch_loss
+            if step % 10 == 0:
+                print "batch: %d | loss: %f" % (step, batch_loss)
 
         return batch_losses
 
@@ -278,10 +282,10 @@ def main(debug=False):
     config = Config()
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
-    model = Model(config, GloVe_embeddings, debug=True)
+    model = Model(config, GloVe_embeddings)
 
     loss_per_epoch = []
-    eval_metrics_per_epoch = {}
+    eval_metrics_per_epoch = []
 
     init = tf.global_variables_initializer()
     saver = tf.train.Saver()
@@ -290,6 +294,9 @@ def main(debug=False):
         sess.run(init)
 
         for epoch in range(config.max_no_of_epochs):
+            print "###########################"
+            print "######## NEW EPOCH ########"
+            print "###########################"
             print "epoch: %d/%d" % (epoch, config.max_no_of_epochs-1)
 
             # run an epoch and get all losses:
@@ -300,23 +307,28 @@ def main(debug=False):
             # save the epoch loss:
             loss_per_epoch.append(epoch_loss)
             # save the epoch losses to disk:
-            cPickle.dump(loss_per_epoch, open("%s/losses/loss_per_epoch_%d"\
-                        % (model.config.model_dir, epoch), "w"))
+            cPickle.dump(loss_per_epoch, open("%s/losses/loss_per_epoch"\
+                        % model.config.model_dir, "w"))
 
             # generate captions on a (subset) of val:
             captions_file = model.generate_captions_on_val(sess, epoch,
-                        model.vocabulary, val_set_size=1)
+                        model.vocabulary, val_set_size=200)
             # evaluate the generated captions (compute metrics):
             eval_result_dict = evaluate_captions(captions_file)
             # save the epoch evaluation metrics:
-            eval_metrics_per_epoch[epoch] = eval_result_dict
+            eval_metrics_per_epoch.append(eval_result_dict)
             # save the evaluation metrics for epochs to disk:
-            cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch_%d"\
-                        % (model.config.model_dir, epoch), "w"))
+            cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch"\
+                        % model.config.model_dir, "w"))
 
             # save the model weights to disk:
             saver.save(sess, "%s/weights/model" % model.config.model_dir,
                         global_step=epoch)
+
+            print "epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"])
+
+    # plot the loss and the different metrics vs epoch:
+    plot_performance(config.model_dir)
 
 if __name__ == '__main__':
     main()
