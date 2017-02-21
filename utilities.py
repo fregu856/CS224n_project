@@ -197,25 +197,33 @@ def plot_performance(model_dir):
     plt.savefig("%s/plots/METEOR_per_epoch.png" % model_dir)
 
 def compare_captions(model_dir, epoch):
+    # define where the ground truth captions for the val imgs are located:
     true_captions_file = "coco/annotations/captions_val2014.json"
 
     coco = COCO(true_captions_file)
-    cocoRes = coco.loadRes("%s/generated_captions/captions_%d.json" % (model_dir, epoch))
+    # load the file containing all generated captions:
+    cocoRes = coco.loadRes("%s/generated_captions/captions_%d.json"\
+                % (model_dir, epoch))
 
+    # get the img id of all imgs for which captions have been generated:
     img_ids = cocoRes.getImgIds()
-    imgId = img_ids[175]
+    # choose one specific img:
+    img_id = img_ids[175]
 
+    # print all ground truth captions for the img:
     print "ground truth captions:"
-    annIds = coco.getAnnIds(imgIds=imgId)
+    annIds = coco.getAnnIds(imgIds=img_id)
     anns = coco.loadAnns(annIds)
     coco.showAnns(anns)
 
+    # print the generated caption for the img:
     print "generated caption:"
-    annIds = cocoRes.getAnnIds(imgIds=imgId)
+    annIds = cocoRes.getAnnIds(imgIds=img_id)
     anns = cocoRes.loadAnns(annIds)
     coco.showAnns(anns)
 
-    img = coco.loadImgs(imgId)[0]
+    # display the img:
+    img = coco.loadImgs(img_id)[0]
     I = io.imread("coco/images/val/%s" % img["file_name"])
     plt.imshow(I)
     plt.axis('off')
