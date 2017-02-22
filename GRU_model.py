@@ -112,13 +112,13 @@ class GRU_Model(object):
 
     def add_placeholders(self):
         self.captions_ph = tf.placeholder(tf.int32,
-                    shape=[self.config.batch_size, None],
+                    shape=[None, None],
                     name="captions_ph")
         self.imgs_ph = tf.placeholder(tf.float32,
-                    shape=[self.config.batch_size, self.config.img_dim],
+                    shape=[None, self.config.img_dim],
                     name="imgs_ph")
         self.labels_ph = tf.placeholder(tf.int32,
-                    shape=[self.config.batch_size, None],
+                    shape=[None, None],
                     name="labels_ph")
         self.dropout_ph = tf.placeholder(tf.float32, name="dropout_ph")
 
@@ -157,7 +157,8 @@ class GRU_Model(object):
                     output_keep_prob=self.dropout_ph)
         multilayer_GRU = tf.nn.rnn_cell.MultiRNNCell(
                     [GRU_dropout]*self.config.no_of_layers)
-        initial_state = multilayer_GRU.zero_state(self.config.batch_size,
+        # (tf.shape(self.input)[0] gets the current batch size)
+        initial_state = multilayer_GRU.zero_state(tf.shape(self.input)[0],
                     tf.float32)
         outputs, final_state = tf.nn.dynamic_rnn(multilayer_GRU,
                     self.input, initial_state=initial_state)
@@ -212,14 +213,11 @@ class GRU_Model(object):
         return batch_losses
 
     def generate_img_caption(self, session, img_vector, vocabulary):
-        # (the NN always needs to be fed tensors of shape (batch_size, ?), but
-        # the only thing we care about here is the first row)
-
         # initialize the caption as "<SOS>":
-        caption = np.zeros((self.config.batch_size, 1))
+        caption = np.zeros((1, 1))
         caption[0] = np.array(vocabulary.index("<SOS>"))
         # format the img_vector so it can be fed to the NN:
-        img = np.zeros((self.config.batch_size, self.config.img_dim))
+        img = np.zeros((1, self.config.img_dim))
         img[0] = img_vector
         # we will get one vector of logits for each timestep, 0: img, 1: "<SOS>",
         # we want to get the one corr. to "<SOS>":
@@ -238,7 +236,7 @@ class GRU_Model(object):
             # get the index of the predicted word:
             predicted_word_index = np.argmax(prediction_logits)
             # add the new word to the caption (only care about the first row):
-            new_word_col = np.zeros((self.config.batch_size, 1))
+            new_word_col = np.zeros((1, 1))
             new_word_col[0] = np.array(predicted_word_index)
             caption = np.append(caption, new_word_col, axis=1)
             # increment prediction_index so that we'll look at the new last word
@@ -254,7 +252,7 @@ class GRU_Model(object):
 
     def generate_captions_on_val(self, session, epoch, vocabulary, val_set_size=5000):
         if self.debug:
-            val_set_size = 2
+            val_set_size = 101
 
         # get the map from img id to feature vector:
         val_img_id_2_feature_vector =\
@@ -269,7 +267,7 @@ class GRU_Model(object):
 
         captions = []
         for step, (img_id, img_vector) in enumerate(val_set):
-            if step % 10 == 0:
+            if step % 100 == 0:
                 print "generating captions on val: %d" % step
 
             # generate a caption for the img:
