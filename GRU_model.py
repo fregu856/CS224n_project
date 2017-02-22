@@ -322,7 +322,7 @@ def main():
 
             # generate captions on a (subset) of val:
             captions_file = model.generate_captions_on_val(sess, epoch,
-                        model.vocabulary, val_set_size=10)
+                        model.vocabulary, val_set_size=1000)
             # evaluate the generated captions (compute metrics):
             eval_result_dict = evaluate_captions(captions_file)
             # save the epoch evaluation metrics:

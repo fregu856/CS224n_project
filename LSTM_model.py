@@ -204,10 +204,10 @@ class LSTM_Model(object):
                         feed_dict=feed_dict)
             batch_losses.append(batch_loss)
 
-            if step % 100 == 0:
+            if step % 10 == 0:
                 print "batch: %d | loss: %f" % (step, batch_loss)
 
-            if step > 4 and self.debug:
+            if step > 5 and self.debug:
                 break
 
         return batch_losses
@@ -322,7 +322,7 @@ def main():
 
             # generate captions on a (subset) of val:
             captions_file = model.generate_captions_on_val(sess, epoch,
-                        model.vocabulary, val_set_size=10)
+                        model.vocabulary, val_set_size=1000)
             # evaluate the generated captions (compute metrics):
             eval_result_dict = evaluate_captions(captions_file)
             # save the epoch evaluation metrics:

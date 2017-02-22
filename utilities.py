@@ -210,7 +210,7 @@ def compare_captions(model_dir, epoch):
     # get the img id of all imgs for which captions have been generated:
     img_ids = cocoRes.getImgIds()
     # choose one specific img:
-    img_id = img_ids[175]
+    img_id = img_ids[9]
 
     # print all ground truth captions for the img:
     print "ground truth captions:"
