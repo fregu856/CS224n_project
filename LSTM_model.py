@@ -11,9 +11,9 @@ import random
 from utilities import train_data_iterator, detokenize_caption, evaluate_captions
 from utilities import plot_performance, compare_captions
 
-class Config(object):
+class LSTM_Config(object):
 
-    def __init__(self):
+    def __init__(self, debug=False):
         self.dropout = 0.5
         self.embed_dim = 300
         self.hidden_dim = 200
@@ -22,14 +22,17 @@ class Config(object):
         self.img_dim = 2048
         self.vocab_size = 9855
         self.no_of_layers = 1
-        self.max_no_of_epochs = 50
+        if debug:
+            self.max_no_of_epochs = 2
+        else:
+            self.max_no_of_epochs = 50
         self.max_caption_length = 30
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
         self.model_dir = "models/LSTMs/%s" % self.model_name
 
-class Model(object):
+class LSTM_Model(object):
 
     def __init__(self, config, GloVe_embeddings, debug=False, mode="training"):
         self.GloVe_embeddings = GloVe_embeddings
@@ -288,10 +291,10 @@ class Model(object):
         return captions_file
 
 def main(debug=False):
-    config = Config()
+    config = LSTM_Config(debug=True)
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
-    model = Model(config, GloVe_embeddings)
+    model = LSTM_Model(config, GloVe_embeddings, debug=True)
 
     loss_per_epoch = []
     eval_metrics_per_epoch = []
@@ -301,6 +304,9 @@ def main(debug=False):
 
     with tf.Session() as sess:
         sess.run(init)
+
+        if debug:
+            config.max_no_epochs = 2
 
         for epoch in range(config.max_no_of_epochs):
             print "###########################"

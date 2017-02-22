@@ -1,5 +1,14 @@
 # NOTE! val should be replaced by test once the project is finished!
 
+"""
+- Must be called in one of the following ways:
+ $ caption_random_test_img.py LSTM (for using the best LSTM model)
+ $ caption_random_test_img.py GRU (for using te best GRU model)
+
+- Assumes that the image one would like to generate a caption for is called
+ "img.jpg" and is placed in the directory "test_img".
+"""
+
 import cPickle
 import random
 import numpy as np
@@ -12,7 +21,14 @@ import sys
 sys.path.append("/home/fregu856/CS224n/project/CS224n_project/coco/PythonAPI")
 from pycocotools.coco import COCO
 
-from model import Config, Model
+from GRU_model import GRU_Config, GRU_Model
+from LSTM_model import LSTM_Config, LSTM_Model
+
+model_type = sys.argv[1]
+if model_type not in ["LSTM", "GRU"]:
+    raise Exception("Must be called in one of the following ways: \n%s\n%s" %\
+                ("$ caption_random_test_img.py LSTM",
+                "$ caption_random_test_img.py GRU"))
 
 # load all needed data:
 val_img_ids = cPickle.load(open("coco/data/val_img_ids"))
@@ -28,17 +44,26 @@ img_id = int(val_img_ids[0])
 feature_vector = val_img_id_2_feature_vector[img_id]
 
 # initialize the model:
-config = Config()
-dummy_embeddings = np.zeros((config.vocab_size, config.embed_dim),
-            dtype=np.float32)
-model = Model(config, dummy_embeddings, mode="demo")
+if model_type == "GRU":
+    config = GRU_Config()
+    dummy_embeddings = np.zeros((config.vocab_size, config.embed_dim),
+                dtype=np.float32)
+    model = GRU_Model(config, dummy_embeddings, mode="demo")
+else:
+    config = LSTM_Config()
+    dummy_embeddings = np.zeros((config.vocab_size, config.embed_dim),
+                dtype=np.float32)
+    model = LSTM_Model(config, dummy_embeddings, mode="demo")
 
 # create the saver:
 saver = tf.train.Saver()
 
 with tf.Session() as sess:
     # restore the best model:
-    saver.restore(sess, "models/LSTMs/best_model/model")
+    if model_type == "GRU":
+        saver.restore(sess, "models/GRUs/best_model/model")
+    else:
+        saver.restore(sess, "models/LSTMs/best_model/model")
 
     # caption the img (using the best model):
     img_caption = model.generate_img_caption(sess, feature_vector, vocabulary)
