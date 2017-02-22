@@ -97,7 +97,7 @@ import numpy as np
 # for step, caption_id in enumerate(val_caption_id_2_caption):
 #     if step % 1000 == 0:
 #         print "train, tokenizing: ", step
-# 
+#
 #     caption = val_caption_id_2_caption[caption_id]
 #
 #     # tokenize the caption:

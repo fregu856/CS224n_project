@@ -203,7 +203,7 @@ class LSTM_Model(object):
                         feed_dict=feed_dict)
             batch_losses.append(batch_loss)
 
-            if step % 10 == 0:
+            if step % 100 == 0:
                 print "batch: %d | loss: %f" % (step, batch_loss)
 
             if step > 4 and self.debug:
@@ -290,11 +290,11 @@ class LSTM_Model(object):
         # return the name of the json file:
         return captions_file
 
-def main(debug=False):
-    config = LSTM_Config(debug=True)
+def main():
+    config = LSTM_Config()
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
-    model = LSTM_Model(config, GloVe_embeddings, debug=True)
+    model = LSTM_Model(config, GloVe_embeddings)
 
     loss_per_epoch = []
     eval_metrics_per_epoch = []
@@ -304,9 +304,6 @@ def main(debug=False):
 
     with tf.Session() as sess:
         sess.run(init)
-
-        if debug:
-            config.max_no_epochs = 2
 
         for epoch in range(config.max_no_of_epochs):
             print "###########################"
@@ -327,7 +324,7 @@ def main(debug=False):
 
             # generate captions on a (subset) of val:
             captions_file = model.generate_captions_on_val(sess, epoch,
-                        model.vocabulary, val_set_size=25)
+                        model.vocabulary, val_set_size=10)
             # evaluate the generated captions (compute metrics):
             eval_result_dict = evaluate_captions(captions_file)
             # save the epoch evaluation metrics:

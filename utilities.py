@@ -14,6 +14,8 @@ from pycocotools.coco import COCO
 sys.path.append("/home/fregu856/CS224n/project/CS224n_project/coco/coco-caption")
 from pycocoevalcap.eval import COCOEvalCap
 
+from extract_img_features import extract_img_features
+
 import json
 from json import encoder
 encoder.FLOAT_REPR = lambda o: format(o, '.3f')
@@ -58,7 +60,7 @@ def get_batch_ph_data(model_obj, batch_caption_ids):
     labels = -np.ones((batch_size, caption_length + 1))
     # (row i of labels will be the targets for ex i in the batch)
 
-    # pupulate the return data:
+    # populate the return data:
     for i in range(len(batch_caption_ids)):
         caption_id = batch_caption_ids[i]
         img_id = model_obj.caption_id_2_img_id[caption_id]
@@ -99,7 +101,7 @@ def train_data_iterator(model_obj):
                     batch_of_caption_ids)
 
         # yield the data to enable iteration (will be able to do:
-        # for captions, img_vector, labels in train_data_iterator(config):)
+        # for (captions, img_vector, labels) in train_data_iterator(config):)
         yield (captions, img_vectors, labels)
 
 def detokenize_caption(tokenized_caption, vocabulary):
@@ -228,3 +230,34 @@ def compare_captions(model_dir, epoch):
     plt.imshow(I)
     plt.axis('off')
     plt.show()
+
+def map_img_id_2_file_name():
+    img_id_2_file_name = {}
+
+    train_captions_file = "coco/annotations/captions_train2014.json"
+    train_coco = COCO(train_captions_file)
+
+    val_captions_file = "coco/annotations/captions_val2014.json"
+    val_coco = COCO(val_captions_file)
+
+    val_img_ids = val_coco.getImgIds()
+    val_imgs = val_coco.loadImgs(val_img_ids)
+    for img_obj in val_imgs:
+        file_name = img_obj["file_name"]
+        img_id = img_obj["id"]
+        img_id_2_file_name[img_id] = file_name
+
+    train_img_ids = train_coco.getImgIds()
+    train_imgs = train_coco.loadImgs(train_img_ids)
+    for img_obj in train_imgs:
+        file_name = img_obj["file_name"]
+        img_id = img_obj["id"]
+        img_id_2_file_name[img_id] = file_name
+
+    cPickle.dump(img_id_2_file_name, open("coco/data/img_id_2_file_name", "wb"))
+
+def main():
+    map_img_id_2_file_name()
+
+if __name__ == '__main__':
+    main()
