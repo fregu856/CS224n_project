@@ -10,6 +10,7 @@ import random
 
 from utilities import train_data_iterator, detokenize_caption, evaluate_captions
 from utilities import plot_performance, compare_captions
+from utilities import train_data_iterator_attention, get_max_caption_length
 
 class LSTM_attention_Config(object):
 
@@ -32,7 +33,7 @@ class LSTM_attention_Config(object):
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
         self.model_dir = "models/LSTMs_attention/%s" % self.model_name
-        self.max_caption_length = 51
+        self.max_caption_length = get_max_caption_length(self.batch_size)
 
 class LSTM_attention_Model(object):
 
@@ -114,14 +115,14 @@ class LSTM_attention_Model(object):
 
     def add_placeholders(self):
         self.captions_ph = tf.placeholder(tf.int32,
-                    shape=[None, None], # [batch_size, caption_length]
+                    shape=[None, self.config.max_caption_length], # [batch_size, max_caption_length]
                     name="captions_ph")
         self.imgs_ph = tf.placeholder(tf.float32,
                     shape=[None, self.config.no_of_img_feature_vecs,
                            self.config.img_feature_dim], # [batch_size, 64, 300]
                     name="imgs_ph")
         self.labels_ph = tf.placeholder(tf.int32,
-                    shape=[None, None], # [batch_size, caption_length]
+                    shape=[None, self.config.max_caption_length], # [batch_size, max_caption_length]
                     name="labels_ph")
         self.dropout_ph = tf.placeholder(tf.float32, name="dropout_ph")
 
@@ -135,16 +136,13 @@ class LSTM_attention_Model(object):
 
         return feed_dict
 
-    def pad_captions(self):
-        
-
     def add_captions_input(self):
         with tf.variable_scope("captions_embed"):
             word_embeddings = tf.get_variable("word_embeddings",
                         initializer=self.GloVe_embeddings)
             self.captions_input = tf.nn.embedding_lookup(word_embeddings,
                         self.captions_ph)
-            # (self.captions_input has shape [batch_size, caption_length, 300])
+            # (captions_input has shape [batch_size, max_caption_length, 300])
 
     def add_logits(self):
         LSTM = tf.nn.rnn_cell.BasicLSTMCell(self.config.hidden_dim)
@@ -203,8 +201,8 @@ class LSTM_attention_Model(object):
             # (self.logits has shape [batch_size*max_caption_length, vocab_size])
 
     def add_loss_op(self):
-        labels = tf.reshape(self.padded_labels, [-1])
-        # (padded_labels has shape [batch_size, max_caption_length])
+        labels = tf.reshape(self.labels_ph, [-1])
+        # (labels_ph has shape [batch_size, max_caption_length])
         # (labels has shape [batch_size*max_caption_length, ])
 
         # remove all -1 labels and their corresponding logits (-1 labels
@@ -228,14 +226,14 @@ class LSTM_attention_Model(object):
         batch_losses = []
         start_time = time.time()
 
-        for step, (captions, imgs, labels) in enumerate(train_data_iterator(self)):
+        for step, (captions, imgs, labels) in enumerate(train_data_iterator_attention(self)):
             feed_dict = self.create_feed_dict(captions, imgs,
                         labels_batch=labels, dropout=self.config.dropout)
             batch_loss, _ = session.run([self.loss, self.train_op],
                         feed_dict=feed_dict)
             batch_losses.append(batch_loss)
 
-            if step % 10 == 0:
+            if step % 1 == 0:
                 print "batch: %d | loss: %f" % (step, batch_loss)
 
             if step > 5 and self.debug:
@@ -243,13 +241,14 @@ class LSTM_attention_Model(object):
 
         return batch_losses
 
-    def generate_img_caption(self, session, img_vector, vocabulary):
+    def generate_img_caption(self, session, img_features, vocabulary):
         # initialize the caption as "<SOS>":
         caption = np.zeros((1, 1))
         caption[0] = np.array(vocabulary.index("<SOS>"))
         # format the img_vector so it can be fed to the NN:
-        img = np.zeros((1, self.config.img_dim))
-        img[0] = img_vector
+        img = np.zeros((1, self.config.no_of_img_feature_vecs,
+                    self.config.img_feature_dim))
+        img[0] = img_features
         # we will get one vector of logits for each timestep, 0: img, 1: "<SOS>",
         # we want to get the one corr. to "<SOS>":
         prediction_index = 1

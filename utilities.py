@@ -91,6 +91,57 @@ def get_batch_ph_data(model_obj, batch_caption_ids):
 
     return captions, img_vectors, labels
 
+def get_batch_ph_data_attention(model_obj, batch_caption_ids):
+    # get the dimension parameters:
+    batch_size = model_obj.config.batch_size
+    img_feature_dim = model_obj.config.img_feature_dim
+    no_of_img_feature_vecs = model_obj.config.no_of_img_feature_vecs
+    max_caption_length = model_obj.config.max_caption_length
+    caption_length = len(model_obj.train_caption_id_2_caption[batch_caption_ids[0]])
+
+    captions = np.zeros((batch_size, max_caption_length))
+    # (row i of captions will be the tokenized (padded) caption for ex i in the batch)
+    img_features = np.zeros((batch_size, no_of_img_feature_vecs, img_feature_dim))
+    # (img_features[i] will be the (64x300) img features for ex i in the batch)
+    labels = -np.ones((batch_size, max_caption_length))
+    # (row i of labels will be the (padded) targets for ex i in the batch)
+
+    # populate the return data:
+    for i in range(len(batch_caption_ids)):
+        caption_id = batch_caption_ids[i]
+        img_id = model_obj.caption_id_2_img_id[caption_id]
+
+        try:
+            img_feature_vectors = cPickle.load(
+                        open("coco/data/img_features_attention/%d" % img_id))
+        except:
+            img_feature_vectors = np.zeros((no_of_img_feature_vecs,
+                        img_feature_dim))
+
+        caption = model_obj.train_caption_id_2_caption[caption_id]
+
+        captions[i, 0:caption_length] = caption
+        img_features[i] = img_feature_vectors
+        labels[i, 0:caption_length-1] = caption[1:]
+
+        # example to explain labels:
+        # caption == [<SOS>, a, cat, <EOS>]
+        # caption_length == 4
+        # labels[i] == [-1, -1, -1, -1] (assume max_caption_length == caption_length)
+        # caption[1:] == [a, cat, <EOS>]
+        # labels[i, 0:caption_length-1] = caption[1:] gives:
+        # labels[i] == [a, cat, <EOS>, -1]
+        # corresponds to the input:
+        # <SOS>, a, cat, <EOS>
+        # <SOS>: should predict a (a)
+        # a: should predict cat (cat)
+        # cat: should predict <EOS> (<EOS>)
+        # <EOS>: no prediction should be made (-1)
+        # (if max_caption_length > caption_length, then labels[i] will be padded
+        # with -1:s, which are masked in the loss computation)
+
+    return captions, img_features, labels
+
 def train_data_iterator(model_obj):
     # get the batches of caption ids:
     batches_of_caption_ids = get_batches(model_obj)
@@ -98,6 +149,19 @@ def train_data_iterator(model_obj):
     for batch_of_caption_ids in batches_of_caption_ids:
         # get the batch's data in a format ready to be fed into the placeholders:
         captions, img_vectors, labels = get_batch_ph_data(model_obj,
+                    batch_of_caption_ids)
+
+        # yield the data to enable iteration (will be able to do:
+        # for (captions, img_vector, labels) in train_data_iterator(config):)
+        yield (captions, img_vectors, labels)
+
+def train_data_iterator_attention(model_obj):
+    # get the batches of caption ids:
+    batches_of_caption_ids = get_batches(model_obj)
+
+    for batch_of_caption_ids in batches_of_caption_ids:
+        # get the batch's data in a format ready to be fed into the placeholders:
+        captions, img_vectors, labels = get_batch_ph_data_attention(model_obj,
                     batch_of_caption_ids)
 
         # yield the data to enable iteration (will be able to do:
@@ -255,6 +319,18 @@ def map_img_id_2_file_name():
         img_id_2_file_name[img_id] = file_name
 
     cPickle.dump(img_id_2_file_name, open("coco/data/img_id_2_file_name", "wb"))
+
+def get_max_caption_length(batch_size):
+    caption_length_2_no_of_captions =\
+            cPickle.load(open("coco/data/train_caption_length_2_no_of_captions"))
+
+    max_caption_length = 0
+    for caption_length in caption_length_2_no_of_captions:
+        no_of_captions = caption_length_2_no_of_captions[caption_length]
+        if no_of_captions >= batch_size and caption_length > max_caption_length:
+            max_caption_length = caption_length
+
+    return max_caption_length
 
 def main():
     map_img_id_2_file_name()
