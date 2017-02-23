@@ -86,27 +86,23 @@ def main():
     # create a list of the paths to all val imgs:
     val_img_paths = [val_img_dir + file_name for file_name in\
                      os.listdir(val_img_dir) if ".jpg" in file_name]
-    # get the features for all val imgs:
-    extract_img_features_attention(val_img_paths)
-    # save on disk:
-    print "val done!"
 
     # define where all test imgs are located:
     test_img_dir = "coco/images/test/"
     # create a list of the paths to all test imgs:
     test_img_paths = [test_img_dir + file_name for file_name in\
                       os.listdir(test_img_dir) if ".jpg" in file_name]
-    # get the features for all test imgs:
-    extract_img_features_attention(test_img_paths)
-    print "test done!"
+
 
     # define where all train imgs are located:
     train_img_dir = "coco/images/train/"
     # create a list of the paths to all train imgs:
     train_img_paths = [train_img_dir + file_name for file_name in\
                        os.listdir(train_img_dir) if ".jpg" in file_name]
-    # get the features for all train imgs:
-    extract_img_features_attention(train_img_paths)
+
+    img_paths = val_img_paths + test_img_paths + train_img_paths
+
+    extract_img_features_attention(img_paths)
 
 if __name__ == '__main__':
     main()
