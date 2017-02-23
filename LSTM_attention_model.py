@@ -19,7 +19,7 @@ class LSTM_attention_Config(object):
         self.hidden_dim = 200
         self.batch_size = 256
         self.lr = 0.001
-        self.img_feature_vec_dim = 300
+        self.img_feature_dim = 300
         self.no_of_img_feature_vecs = 64
         self.vocab_size = 9855
         self.no_of_layers = 1
@@ -31,7 +31,8 @@ class LSTM_attention_Config(object):
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
-        self.model_dir = "models/LSTMs/%s" % self.model_name
+        self.model_dir = "models/LSTMs_attention/%s" % self.model_name
+        self.max_caption_length = 51
 
 class LSTM_attention_Model(object):
 
@@ -43,7 +44,7 @@ class LSTM_attention_Model(object):
             self.create_model_dirs()
             self.load_utilities_data()
         self.add_placeholders()
-        self.add_input()
+        self.add_captions_input()
         self.add_logits()
         if mode is not "demo":
             self.add_loss_op()
@@ -113,13 +114,14 @@ class LSTM_attention_Model(object):
 
     def add_placeholders(self):
         self.captions_ph = tf.placeholder(tf.int32,
-                    shape=[None, None],
+                    shape=[None, None], # [batch_size, caption_length]
                     name="captions_ph")
         self.imgs_ph = tf.placeholder(tf.float32,
-                    shape=[None, None, self.config.img_feature_vec_dim],
+                    shape=[None, self.config.no_of_img_feature_vecs,
+                           self.config.img_feature_dim], # [batch_size, 64, 300]
                     name="imgs_ph")
         self.labels_ph = tf.placeholder(tf.int32,
-                    shape=[None, None],
+                    shape=[None, None], # [batch_size, caption_length]
                     name="labels_ph")
         self.dropout_ph = tf.placeholder(tf.float32, name="dropout_ph")
 
@@ -133,18 +135,16 @@ class LSTM_attention_Model(object):
 
         return feed_dict
 
-    def add_input(self):
-        with tf.variable_scope("add_input"):
+    def pad_captions(self):
+        
+
+    def add_captions_input(self):
+        with tf.variable_scope("captions_embed"):
             word_embeddings = tf.get_variable("word_embeddings",
                         initializer=self.GloVe_embeddings)
-            captions_input = tf.nn.embedding_lookup(word_embeddings,
+            self.captions_input = tf.nn.embedding_lookup(word_embeddings,
                         self.captions_ph)
-            # (captions_input has shape (batch_size, sentence_length, 300), or
-            # relly (None, None, 300))
-
-            self.input = tf.concat(2, [captions_input, self.imgs_ph])
-            # (self.input has shape (batch_size, sentence_length, 600), or
-            # relly (None, None, 600))
+            # (self.captions_input has shape [batch_size, caption_length, 300])
 
     def add_logits(self):
         LSTM = tf.nn.rnn_cell.BasicLSTMCell(self.config.hidden_dim)
@@ -153,13 +153,44 @@ class LSTM_attention_Model(object):
                     output_keep_prob=self.dropout_ph)
         multilayer_LSTM = tf.nn.rnn_cell.MultiRNNCell(
                     [LSTM_dropout]*self.config.no_of_layers)
-        # (tf.shape(self.input)[0] gets the current batch size)
-        initial_state = multilayer_LSTM.zero_state(tf.shape(self.input)[0],
+        # (tf.shape(self.captions_input)[0] gets the current batch size)
+        initial_state = multilayer_LSTM.zero_state(tf.shape(self.captions_input)[0],
                     tf.float32)
-        outputs, final_state = tf.nn.dynamic_rnn(multilayer_LSTM,
-                    self.input, initial_state=initial_state)
-        self.outputs = outputs
-        output = tf.reshape(outputs, [-1, self.config.hidden_dim])
+
+        outputs = []
+        previous_state = initial_state
+        with tf.variable_scope("LSTM_attention"):
+            for timestep in range(self.config.max_caption_length):
+                if timestep > 0:
+                    tf.get_variable_scope().reuse_variables()
+
+                if timestep == 0:
+                    step_imgs_input = tf.reduce_mean(self.imgs_ph, axis=1)
+                    # (step_img_input has shape [batch_size, 300])
+                else:
+                    step_imgs_input = tf.reduce_mean(self.imgs_ph, axis=1)
+                    # (step_img_input has shape [batch_size, 300])
+
+                step_captions_input = self.captions_input[:, timestep, :]
+                # (step_captions_input has shape [batch_size, 300])
+                step_input = tf.concat(1, [step_imgs_input, step_captions_input])
+                # (step_input has shape [batch_size, 600])
+
+                output, new_state = multilayer_LSTM(step_input, previous_state)
+                # (output = h, new_state is a tuple containing both h and c)
+                # (output thus has shape [batch_size, hidden_dim])
+
+                previous_state = new_state
+
+                outputs.append(output)
+
+        # (outputs is a list of max_caption_length elements, each of which is a
+        # tensor of shape [batch_size, hidden_dim]. We first want a tensor of
+        # shape [batch_size, max_caption_length, hidden_dim])
+        outputs = tf.pack(outputs, axis=1)
+
+        outputs = tf.reshape(outputs, [-1, self.config.hidden_dim])
+        # (outputs has shape [batch_size*max_caption_length, hidden_dim])
 
         with tf.variable_scope("logits"):
             W_logits = tf.get_variable("W_logits",
@@ -168,13 +199,16 @@ class LSTM_attention_Model(object):
             b_logits = tf.get_variable("b_logits",
                         shape=[1, self.config.vocab_size],
                         initializer=tf.constant_initializer(0))
-            self.logits = tf.matmul(output, W_logits) + b_logits
+            self.logits = tf.matmul(outputs, W_logits) + b_logits
+            # (self.logits has shape [batch_size*max_caption_length, vocab_size])
 
     def add_loss_op(self):
-        labels = tf.reshape(self.labels_ph, [-1])
+        labels = tf.reshape(self.padded_labels, [-1])
+        # (padded_labels has shape [batch_size, max_caption_length])
+        # (labels has shape [batch_size*max_caption_length, ])
 
         # remove all -1 labels and their corresponding logits (-1 labels
-        # correspond to the img or <EOS> step, the predicitons at these
+        # correspond to the <EOS> step or padded steps, the predicitons at these
         # steps are irrelevant):
         mask = tf.greater_equal(labels, 0)
         masked_labels = tf.boolean_mask(labels, mask)
@@ -195,30 +229,6 @@ class LSTM_attention_Model(object):
         start_time = time.time()
 
         for step, (captions, imgs, labels) in enumerate(train_data_iterator(self)):
-            # (imgs has shape (batch_size, 64, 300))
-            # (caption and labels have shape (batch_size, caption_length))
-
-            batch_size = captions.shape[0]
-            caption_length = captions.shape[1]
-
-            captions_step = np.zeros((batch_size, 1))
-            imgs_step = np.zeros((batch_size, 1))
-
-            for step in range(caption_length):
-
-
-                if step == 0:
-                    imgs = np.mean(imgs, axis=1)
-                    # (imgs has shape batch_size, 300)
-                else:
-                    test = 1
-
-
-
-
-
-
-
             feed_dict = self.create_feed_dict(captions, imgs,
                         labels_batch=labels, dropout=self.config.dropout)
             batch_loss, _ = session.run([self.loss, self.train_op],
@@ -359,9 +369,9 @@ def main():
             print "epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"])
 
     # plot the loss and the different metrics vs epoch:
-    plot_performance(config.model_dir)
+    #plot_performance(config.model_dir)
 
-    compare_captions(config.model_dir, 7)
+    #compare_captions(config.model_dir, 7)
 
 if __name__ == '__main__':
     main()

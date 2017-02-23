@@ -160,9 +160,10 @@ class LSTM_Model(object):
         # (tf.shape(self.input)[0] gets the current batch size)
         initial_state = multilayer_LSTM.zero_state(tf.shape(self.input)[0],
                     tf.float32)
+
         outputs, final_state = tf.nn.dynamic_rnn(multilayer_LSTM,
                     self.input, initial_state=initial_state)
-        output = tf.reshape(outputs, [-1, self.config.hidden_dim])
+        outputs = tf.reshape(outputs, [-1, self.config.hidden_dim])
 
         with tf.variable_scope("logits"):
             W_logits = tf.get_variable("W_logits",
@@ -171,7 +172,7 @@ class LSTM_Model(object):
             b_logits = tf.get_variable("b_logits",
                         shape=[1, self.config.vocab_size],
                         initializer=tf.constant_initializer(0))
-            self.logits = tf.matmul(output, W_logits) + b_logits
+            self.logits = tf.matmul(outputs, W_logits) + b_logits
 
     def add_loss_op(self):
         labels = tf.reshape(self.labels_ph, [-1])
