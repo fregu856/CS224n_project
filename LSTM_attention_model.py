@@ -41,6 +41,7 @@ class LSTM_attention_Model(object):
         self.GloVe_embeddings = GloVe_embeddings
         self.debug = debug
         self.config = config
+        self.mode = mode
         if mode is not "demo":
             self.create_model_dirs()
             self.load_utilities_data()
@@ -137,7 +138,7 @@ class LSTM_attention_Model(object):
         return feed_dict
 
     def add_captions_input(self):
-        with tf.variable_scope("captions_embed"):
+        with tf.variable_scope("LSTM_att_captions_embed"):
             word_embeddings = tf.get_variable("word_embeddings",
                         initializer=self.GloVe_embeddings)
             self.captions_input = tf.nn.embedding_lookup(word_embeddings,
@@ -155,6 +156,7 @@ class LSTM_attention_Model(object):
                     tf.float32)
         # (tf.shape(self.captions_input)[0] gets the current batch size)
 
+        attention_maps = []
         outputs = []
         previous_state = initial_state
         with tf.variable_scope("LSTM_attention"):
@@ -176,7 +178,7 @@ class LSTM_attention_Model(object):
                     tf.get_variable_scope().reuse_variables()
 
                 if timestep == 0:
-                    att_probs = (1/self.config.no_of_img_feature_vecs)*tf.ones((
+                    att_probs = (1./self.config.no_of_img_feature_vecs)*tf.ones((
                                 tf.shape(self.captions_input)[0],
                                 self.config.no_of_img_feature_vecs, 1))
                     # (att_probs has shape [batch_size, 64, 1])
@@ -211,6 +213,10 @@ class LSTM_attention_Model(object):
                 previous_state = new_state
                 outputs.append(output)
 
+                attention_maps.append(att_probs)
+
+        self.attention_maps = attention_maps
+
         # (outputs is a list of max_caption_length elements, each of which is a
         # tensor of shape [batch_size, hidden_dim]. We first want a tensor of
         # shape [batch_size, max_caption_length, hidden_dim])
@@ -219,7 +225,7 @@ class LSTM_attention_Model(object):
         outputs = tf.reshape(outputs, [-1, self.config.hidden_dim])
         # (outputs has shape [batch_size*max_caption_length, hidden_dim])
 
-        with tf.variable_scope("logits"):
+        with tf.variable_scope("LSTM_att_logits"):
             W_logits = tf.get_variable("W_logits",
                         shape=[self.config.hidden_dim, self.config.vocab_size],
                         initializer=tf.contrib.layers.xavier_initializer())
@@ -265,7 +271,7 @@ class LSTM_attention_Model(object):
             if step % 1 == 0:
                 print "batch: %d | loss: %f" % (step, batch_loss)
 
-            if step > 5 and self.debug:
+            if step > 2 and self.debug:
                 break
 
         return batch_losses
@@ -279,29 +285,46 @@ class LSTM_attention_Model(object):
                     self.config.img_feature_dim))
         img[0] = img_features
         prediction_index = 0
+        attention_maps = []
 
         # predict the next word given the img and the current caption until we
         # get "<EOS>" or the caption length hits a max value:
-        while int(caption[0][prediciton_index]) is not vocabulary.index("<EOS>") and\
-                    prediciton_index < self.config.max_caption_length:
+        while int(caption[0][prediction_index]) is not vocabulary.index("<EOS>") and\
+                    prediction_index < self.config.max_caption_length-1:
             feed_dict = self.create_feed_dict(caption, img)
-            logits = session.run(self.logits, feed_dict=feed_dict)
+            if self.mode == "demo":
+                logits, att_maps = session.run([self.logits, self.attention_maps],
+                            feed_dict=feed_dict)
+            else:
+                logits = session.run(self.logits, feed_dict=feed_dict)
             # get the logits vector corr. to the last word in the current caption:
             prediction_logits = logits[prediction_index]
             # get the index of the predicted word:
             predicted_word_index = np.argmax(prediction_logits)
             # add the new word to the caption:
             caption[0, prediction_index+1] = predicted_word_index
+
+            if self.mode == "demo":
+                attention_probs = att_maps[prediction_index]
+                attention_maps.append(attention_probs)
+
             # increment prediction_index so that we'll look at the new last word
             # of the caption in the next iteration:
             prediction_index += 1
 
         # get the caption and convert to ints:
         caption = caption[0].astype(int)
+        caption = caption[0:prediction_index+1] # remove all padding
         # convert the caption to actual text:
         caption = detokenize_caption(caption, vocabulary)
 
-        return caption
+        # remove the attention_probs corr to the <EOS> prediction:
+        attention_maps.pop()
+
+        if self.mode == "demo":
+            return caption, attention_maps
+        else:
+            return caption
 
     def generate_captions_on_val(self, session, epoch, vocabulary, val_set_size=5000):
         if self.debug:

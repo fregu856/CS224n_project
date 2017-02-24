@@ -24,25 +24,13 @@ def extract_img_features_attention(img_paths, demo=False):
     # load the Inception-V3 model:
     load_pretrained_CNN()
 
-    # initialize the model containing W_img and b_img:
-    config = LSTM_Config()
-    dummy_embeddings = np.zeros((config.vocab_size, config.embed_dim),
-                dtype=np.float32)
-    model = LSTM_Model(config, dummy_embeddings, mode="demo")
-
-    # create the saver:
-    saver = tf.train.Saver()
+    # load the parameters for the img transform:
+    transform_params = cPickle.load(open(
+                "coco/data/img_features_attention/transform_params/numpy_params"))
+    W_img = transform_params["W_img"]
+    b_img = transform_params["b_img"]
 
     with tf.Session() as sess:
-        # restore all model variables:
-        params_dir = "coco/data/img_features_attention/transform_params"
-        saver.restore(sess, "%s/model" % params_dir)
-
-        # get the restored W_img and b_img:
-        with tf.variable_scope("img_transform", reuse=True):
-            W_img = tf.get_variable("W_img")
-            b_img = tf.get_variable("b_img")
-
         # get the third-to-last layer in the Inception-V3 model (a tensor
         # of shape (1, 8, 8, 2048)):
         img_features_tensor = sess.graph.get_tensor_by_name("mixed_10/join:0")
@@ -57,6 +45,11 @@ def extract_img_features_attention(img_paths, demo=False):
             if step % 10 == 0:
                 print step
 
+            # img_name = img_path.split("/")[3]
+            # img_id = img_name.split("_")[2].split(".")[0].lstrip("0")
+            # img_id = int(img_id)
+            #
+            # if not os.path.exists("coco/data/img_features_attention/%d" % img_id):
             # read the image:
             img_data = gfile.FastGFile(img_path, "rb").read()
             try:
@@ -74,7 +67,7 @@ def extract_img_features_attention(img_paths, demo=False):
                     img_id = img_name.split("_")[2].split(".")[0].lstrip("0")
                     img_id = int(img_id)
                 else:
-                    img_id = 0
+                    img_id = -1
 
                 # save the img features to disk:
                 cPickle.dump(img_features,
