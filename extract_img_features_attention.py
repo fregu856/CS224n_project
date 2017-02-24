@@ -10,8 +10,8 @@ import tensorflow as tf
 import tensorflow.python.platform
 from tensorflow.python.platform import gfile
 import numpy as np
-import matplotlib.pyplot as plt
 import cPickle
+from utilities import log
 
 from LSTM_model import LSTM_Config, LSTM_Model
 from extract_img_features import load_pretrained_CNN
@@ -44,6 +44,7 @@ def extract_img_features_attention(img_paths, demo=False):
         for step, img_path in enumerate(img_paths):
             if step % 10 == 0:
                 print step
+                log(str(step))
 
             # read the image:
             img_data = gfile.FastGFile(img_path, "rb").read()
@@ -55,6 +56,9 @@ def extract_img_features_attention(img_paths, demo=False):
                 print "JPEG error for:"
                 print img_path
                 print "******************"
+                log("JPEG error for:")
+                log(img_path)
+                log("******************")
             else:
                 if not demo:
                     # get the image id:

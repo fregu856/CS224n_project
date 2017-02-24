@@ -4,6 +4,7 @@ import os
 import random
 import matplotlib.pyplot as plt
 import skimage.io as io
+from datetime import datetime # to get the current date and time
 
 # add the "PythonAPI" dir to the path so that "pycocotools" can be found:
 import sys
@@ -331,6 +332,21 @@ def get_max_caption_length(batch_size):
             max_caption_length = caption_length
 
     return max_caption_length
+
+def log(log_message):
+    """
+
+    DESCRIPTION:
+    - Adds a log message "log_message" and its time stamp to a log file.
+
+    """
+
+    # open the log file and make sure that it's closed properly at the end of the
+    # block, even if an exception occurs:
+    with open("log.txt", "a") as log_file:
+        # write the current time stamp and log message to logfile:
+        log_file.write(datetime.strftime(datetime.today(), "%Y-%m-%d %H:%M:%S") + ": " + log_message)
+        log_file.write("\n") # (so the next message is put on a new line)
 
 def main():
     map_img_id_2_file_name()

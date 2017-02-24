@@ -9,7 +9,7 @@ import cPickle
 import random
 
 from utilities import train_data_iterator, detokenize_caption, evaluate_captions
-from utilities import plot_performance, compare_captions
+from utilities import plot_performance, compare_captions, log
 
 class GRU_Config(object):
 
@@ -74,6 +74,7 @@ class GRU_Model(object):
 
     def load_utilities_data(self):
         print "loading utilities data..."
+        log("loading utilities data...")
 
         # load the vocabulary:
         self.vocabulary = cPickle.load(open("coco/data/vocabulary"))
@@ -109,6 +110,7 @@ class GRU_Model(object):
                 cPickle.load(open("coco/data/train_caption_length_2_no_of_captions"))
 
         print "all utilities data is loaded!"
+        log("all utilities data is loaded!")
 
     def add_placeholders(self):
         self.captions_ph = tf.placeholder(tf.int32,
@@ -206,6 +208,7 @@ class GRU_Model(object):
 
             if step % 10 == 0:
                 print "batch: %d | loss: %f" % (step, batch_loss)
+                log("batch: %d | loss: %f" % (step, batch_loss))
 
             if step > 4 and self.debug:
                 break
@@ -269,6 +272,7 @@ class GRU_Model(object):
         for step, (img_id, img_vector) in enumerate(val_set):
             if step % 100 == 0:
                 print "generating captions on val: %d" % step
+                log("generating captions on val: %d" % step)
 
             # generate a caption for the img:
             img_caption = self.generate_img_caption(session, img_vector, vocabulary)
@@ -289,10 +293,10 @@ class GRU_Model(object):
         return captions_file
 
 def main():
-    config = GRU_Config()
+    config = GRU_Config(debug=True)
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
-    model = GRU_Model(config, GloVe_embeddings)
+    model = GRU_Model(config, GloVe_embeddings, debug=True)
 
     loss_per_epoch = []
     eval_metrics_per_epoch = []
@@ -308,6 +312,10 @@ def main():
             print "######## NEW EPOCH ########"
             print "###########################"
             print "epoch: %d/%d" % (epoch, config.max_no_of_epochs-1)
+            log("###########################")
+            log("######## NEW EPOCH ########")
+            log("###########################")
+            log("epoch: %d/%d" % (epoch, config.max_no_of_epochs-1))
 
             # run an epoch and get all losses:
             batch_losses = model.run_epoch(sess)
@@ -336,9 +344,10 @@ def main():
                         global_step=epoch)
 
             print "epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"])
+            log("epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"]))
 
     # plot the loss and the different metrics vs epoch:
-    plot_performance(config.model_dir)
+    #plot_performance(config.model_dir)
 
     #compare_captions(config.model_dir, 3)
 

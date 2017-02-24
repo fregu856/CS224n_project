@@ -5,6 +5,7 @@
 import numpy as np
 import cPickle
 import os
+from utilities import log
 
 captions_dir = "coco/annotations/"
 data_dir = "coco/data/"
@@ -37,6 +38,7 @@ embeddings_matrix = np.zeros((vocab_size, word_vec_dim))
 for vocab_index, word in enumerate(vocabulary):
     if vocab_index % 1000 == 0:
         print vocab_index
+        log(str(vocab_index))
 
     if word not in ["<SOS>", "<UNK>", "<EOS>"]: # (the special tokens are initialized with zero vectors)
         word_embedd_index = pretrained_words.index(word)

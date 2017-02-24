@@ -9,7 +9,7 @@ import cPickle
 import random
 
 from utilities import train_data_iterator, detokenize_caption, evaluate_captions
-from utilities import plot_performance, compare_captions
+from utilities import plot_performance, compare_captions, log
 from utilities import train_data_iterator_attention, get_max_caption_length
 
 class LSTM_attention_Config(object):
@@ -78,19 +78,14 @@ class LSTM_attention_Model(object):
 
     def load_utilities_data(self):
         print "loading utilities data..."
+        log("loading utilities data...")
 
         # load the vocabulary:
         self.vocabulary = cPickle.load(open("coco/data/vocabulary"))
 
-        # load data to map from caption id to img feature vector:
+        # load data to map from caption id to img id:
         self.caption_id_2_img_id =\
                     cPickle.load(open("coco/data/caption_id_2_img_id"))
-        if self.debug:
-            self.train_img_id_2_feature_vector =\
-                    cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
-        else:
-            self.train_img_id_2_feature_vector =\
-                    cPickle.load(open("coco/data/train_img_id_2_feature_vector"))
 
         # load data to map from caption id to caption:
         if self.debug:
@@ -113,6 +108,7 @@ class LSTM_attention_Model(object):
                 cPickle.load(open("coco/data/train_caption_length_2_no_of_captions"))
 
         print "all utilities data is loaded!"
+        log("all utilities data is loaded!")
 
     def add_placeholders(self):
         self.captions_ph = tf.placeholder(tf.int32,
@@ -279,6 +275,7 @@ class LSTM_attention_Model(object):
 
             if step % 1 == 0:
                 print "batch: %d | loss: %f" % (step, batch_loss)
+                log("batch: %d | loss: %f" % (step, batch_loss))
 
             if step > 2 and self.debug:
                 break
@@ -356,6 +353,7 @@ class LSTM_attention_Model(object):
         for step, img_id in enumerate(val_set):
             if step % 1 == 0:
                 print "generating captions on val: %d" % step
+                log("generating captions on val: %d" % step)
 
             img_features = cPickle.load(
                         open("coco/data/img_features_attention/%d" % img_id))
@@ -379,10 +377,10 @@ class LSTM_attention_Model(object):
         return captions_file
 
 def main():
-    config = LSTM_attention_Config()
+    config = LSTM_attention_Config(debug=True)
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
-    model = LSTM_attention_Model(config, GloVe_embeddings)
+    model = LSTM_attention_Model(config, GloVe_embeddings, debug=True)
 
     loss_per_epoch = []
     eval_metrics_per_epoch = []
@@ -398,6 +396,10 @@ def main():
             print "######## NEW EPOCH ########"
             print "###########################"
             print "epoch: %d/%d" % (epoch, config.max_no_of_epochs-1)
+            log("###########################")
+            log("######## NEW EPOCH ########")
+            log("###########################")
+            log("epoch: %d/%d" % (epoch, config.max_no_of_epochs-1))
 
             # run an epoch and get all losses:
             batch_losses = model.run_epoch(sess)
@@ -426,6 +428,7 @@ def main():
                         global_step=epoch)
 
             print "epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"])
+            log("epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"]))
 
     # plot the loss and the different metrics vs epoch:
     #plot_performance(config.model_dir)

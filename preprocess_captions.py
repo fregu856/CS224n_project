@@ -6,6 +6,7 @@ import numpy as np
 import cPickle
 import os
 import re
+from utilities import log
 
 # add the "PythonAPI" dir to the path so that "pycocotools" can be found:
 import sys
@@ -32,6 +33,7 @@ def get_captions(type_of_data):
     for step, img_id in enumerate(img_ids):
         if step % 1000 == 0:
             print step
+            log(str(step))
 
         # get the ids of all captions for the image:
         caption_ids = coco.getAnnIds(imgIds=img_id)
@@ -110,7 +112,8 @@ for word in word_counts:
 # each caption with an <EOS> token:
 for step, caption_id in enumerate(train_caption_id_2_caption):
     if step % 1000 == 0:
-        print "train: ", step
+        print "train: %d" % step
+        log("train: %d" % step)
 
     caption = train_caption_id_2_caption[caption_id]
     for word_index in range(len(caption)):
@@ -135,7 +138,8 @@ cPickle.dump(vocabulary,
 # caption with an <EOS> token:
 for step, caption_id in enumerate(val_caption_id_2_caption):
     if step % 1000 == 0:
-        print "val: ", step
+        print "val: %d" % step
+        log("val: %d" % step)
 
     caption = val_caption_id_2_caption[caption_id]
     # prepend the caption with an <SOS> token;
@@ -147,7 +151,8 @@ for step, caption_id in enumerate(val_caption_id_2_caption):
 # caption with an <EOS> token:
 for step, caption_id in enumerate(test_caption_id_2_caption):
     if step % 1000 == 0:
-        print "test: ", step
+        print "test: %d" % step
+        log("test: %d" % step)
 
     caption = test_caption_id_2_caption[caption_id]
     # prepend the caption with an <SOS> token;
@@ -158,7 +163,8 @@ for step, caption_id in enumerate(test_caption_id_2_caption):
 # tokenize all train captions:
 for step, caption_id in enumerate(train_caption_id_2_caption):
     if step % 1000 == 0:
-        print "train, tokenizing: ", step
+        print "train, tokenizing: %d" % step
+        log("train, tokenizing: %d" % step)
 
     caption = train_caption_id_2_caption[caption_id]
 

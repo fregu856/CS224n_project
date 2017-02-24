@@ -10,8 +10,8 @@ import tensorflow as tf
 import tensorflow.python.platform
 from tensorflow.python.platform import gfile
 import numpy as np
-import matplotlib.pyplot as plt
 import cPickle
+from utilities import log
 
 def load_pretrained_CNN():
     """
@@ -53,6 +53,7 @@ def extract_img_features(img_paths, demo=False):
         for step, img_path in enumerate(img_paths):
             if step % 100 == 0:
                 print step
+                log(str(step))
 
             # read the image and get its corresponding feature vector:
             img_data = gfile.FastGFile(img_path, "rb").read()
@@ -63,6 +64,9 @@ def extract_img_features(img_paths, demo=False):
                 print "JPEG error for:"
                 print img_path
                 print "******************"
+                log("JPEG error for:")
+                log(img_path)
+                log("******************")
             else:
                 # # flatten the features to an np.array:
                 feature_vector = np.squeeze(feature_vector)
@@ -92,6 +96,7 @@ def main():
     cPickle.dump(val_img_id_2_feature_vector,
                  open("coco/data/val_img_id_2_feature_vector", "wb"))
     print "val done!"
+    log("val done!")
 
     # define where all test imgs are located:
     test_img_dir = "coco/images/test/"
@@ -104,6 +109,7 @@ def main():
     cPickle.dump(test_img_id_2_feature_vector,
                  open("coco/data/test_img_id_2_feature_vector", "wb"))
     print "test done!"
+    log("test done!")
 
     # define where all train imgs are located:
     train_img_dir = "coco/images/train/"
