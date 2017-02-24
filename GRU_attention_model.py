@@ -12,7 +12,7 @@ from utilities import train_data_iterator, detokenize_caption, evaluate_captions
 from utilities import plot_performance, compare_captions
 from utilities import train_data_iterator_attention, get_max_caption_length
 
-class LSTM_attention_Config(object):
+class GRU_attention_Config(object):
 
     def __init__(self, debug=False):
         self.dropout = 0.5
@@ -31,11 +31,11 @@ class LSTM_attention_Config(object):
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
-        self.model_dir = "models/LSTMs_attention/%s" % self.model_name
+        self.model_dir = "models/GRUs_attention/%s" % self.model_name
         self.max_caption_length = get_max_caption_length(self.batch_size)
         self.hidden_dim_att = 200
 
-class LSTM_attention_Model(object):
+class GRU_attention_Model(object):
 
     def __init__(self, config, GloVe_embeddings, debug=False, mode="training"):
         self.GloVe_embeddings = GloVe_embeddings
@@ -138,7 +138,7 @@ class LSTM_attention_Model(object):
         return feed_dict
 
     def add_captions_input(self):
-        with tf.variable_scope("LSTM_att_captions_embed"):
+        with tf.variable_scope("GRU_att_captions_embed"):
             word_embeddings = tf.get_variable("word_embeddings",
                         initializer=self.GloVe_embeddings)
             self.captions_input = tf.nn.embedding_lookup(word_embeddings,
@@ -146,20 +146,20 @@ class LSTM_attention_Model(object):
             # (captions_input has shape [batch_size, max_caption_length, 300])
 
     def add_logits(self):
-        LSTM = tf.nn.rnn_cell.BasicLSTMCell(self.config.hidden_dim)
-        LSTM_dropout = tf.nn.rnn_cell.DropoutWrapper(LSTM,
+        GRU = tf.nn.rnn_cell.GRUCell(self.config.hidden_dim)
+        GRU_dropout = tf.nn.rnn_cell.DropoutWrapper(GRU,
                     input_keep_prob=self.dropout_ph,
                     output_keep_prob=self.dropout_ph)
-        multilayer_LSTM = tf.nn.rnn_cell.MultiRNNCell(
-                    [LSTM_dropout]*self.config.no_of_layers)
-        initial_state = multilayer_LSTM.zero_state(tf.shape(self.captions_input)[0],
+        multilayer_GRU = tf.nn.rnn_cell.MultiRNNCell(
+                    [GRU_dropout]*self.config.no_of_layers)
+        initial_state = multilayer_GRU.zero_state(tf.shape(self.captions_input)[0],
                     tf.float32)
         # (tf.shape(self.captions_input)[0] gets the current batch size)
 
         attention_maps = []
         outputs = []
         previous_state = initial_state
-        with tf.variable_scope("LSTM_attention"):
+        with tf.variable_scope("GRU_attention"):
             W_att = tf.get_variable("W_att",
                         shape=[self.config.hidden_dim, self.config.hidden_dim_att],
                         initializer=tf.contrib.layers.xavier_initializer())
@@ -213,7 +213,7 @@ class LSTM_attention_Model(object):
                 step_input = tf.concat(1, [step_imgs_input, step_captions_input])
                 # (step_input has shape [batch_size, 600])
 
-                output, new_state = multilayer_LSTM(step_input, previous_state)
+                output, new_state = multilayer_GRU(step_input, previous_state)
                 # (output = h (at the top layer), new_state is a tuple containing
                 # both h and c (for all layers if we have more than one layer))
                 # (output thus has shape [batch_size, hidden_dim])
@@ -234,7 +234,7 @@ class LSTM_attention_Model(object):
         outputs = tf.reshape(outputs, [-1, self.config.hidden_dim])
         # (outputs has shape [batch_size*max_caption_length, hidden_dim])
 
-        with tf.variable_scope("LSTM_att_logits"):
+        with tf.variable_scope("GRU_att_logits"):
             W_logits = tf.get_variable("W_logits",
                         shape=[self.config.hidden_dim, self.config.vocab_size],
                         initializer=tf.contrib.layers.xavier_initializer())
@@ -379,10 +379,10 @@ class LSTM_attention_Model(object):
         return captions_file
 
 def main():
-    config = LSTM_attention_Config()
+    config = GRU_attention_Config(debug=True)
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
-    model = LSTM_attention_Model(config, GloVe_embeddings)
+    model = GRU_attention_Model(config, GloVe_embeddings, debug=True)
 
     loss_per_epoch = []
     eval_metrics_per_epoch = []

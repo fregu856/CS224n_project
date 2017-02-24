@@ -117,3 +117,41 @@ import numpy as np
 #
 # cPickle.dump(val_caption_id_2_caption, open(os.path.join(data_dir,
 #         "val_caption_id_2_caption"), "wb"))
+
+# test = cPickle.load(open("coco/data/train_caption_length_2_no_of_captions"))
+#
+# for caption_length in test:
+#     print caption_length
+#     print test[caption_length]
+
+    # initialize the model containing W_img and b_img:
+
+from LSTM_model import LSTM_Config, LSTM_Model
+import numpy as np
+import tensorflow as tf
+
+config = LSTM_Config()
+dummy_embeddings = np.zeros((config.vocab_size, config.embed_dim),
+            dtype=np.float32)
+model = LSTM_Model(config, dummy_embeddings, mode="demo")
+
+# create the saver:
+saver = tf.train.Saver()
+
+with tf.Session() as sess:
+    # restore all model variables:
+    params_dir = "coco/data/img_features_attention/transform_params"
+    saver.restore(sess, "%s/model" % params_dir)
+
+    # get the restored W_img and b_img:
+    with tf.variable_scope("img_transform", reuse=True):
+        W_img = tf.get_variable("W_img")
+        b_img = tf.get_variable("b_img")
+
+        W_img = sess.run(W_img)
+        b_img = sess.run(b_img)
+
+        transform_params = {}
+        transform_params["W_img"] = W_img
+        transform_params["b_img"] = b_img
+        cPickle.dump(transform_params, open("coco/data/img_features_attention/transform_params/numpy_params", "wb"))

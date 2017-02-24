@@ -45,11 +45,6 @@ def extract_img_features_attention(img_paths, demo=False):
             if step % 10 == 0:
                 print step
 
-            # img_name = img_path.split("/")[3]
-            # img_id = img_name.split("_")[2].split(".")[0].lstrip("0")
-            # img_id = int(img_id)
-            #
-            # if not os.path.exists("coco/data/img_features_attention/%d" % img_id):
             # read the image:
             img_data = gfile.FastGFile(img_path, "rb").read()
             try:
@@ -85,7 +80,6 @@ def main():
     # create a list of the paths to all test imgs:
     test_img_paths = [test_img_dir + file_name for file_name in\
                       os.listdir(test_img_dir) if ".jpg" in file_name]
-
 
     # define where all train imgs are located:
     train_img_dir = "coco/images/train/"
