@@ -28,12 +28,12 @@ class LSTM_attention_Config(object):
             self.max_no_of_epochs = 2
         else:
             self.max_no_of_epochs = 50
-        self.max_caption_length = 30
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
         self.model_dir = "models/LSTMs_attention/%s" % self.model_name
         self.max_caption_length = get_max_caption_length(self.batch_size)
+        self.hidden_dim_att = 200
 
 class LSTM_attention_Model(object):
 
@@ -151,35 +151,64 @@ class LSTM_attention_Model(object):
                     output_keep_prob=self.dropout_ph)
         multilayer_LSTM = tf.nn.rnn_cell.MultiRNNCell(
                     [LSTM_dropout]*self.config.no_of_layers)
-        # (tf.shape(self.captions_input)[0] gets the current batch size)
         initial_state = multilayer_LSTM.zero_state(tf.shape(self.captions_input)[0],
                     tf.float32)
+        # (tf.shape(self.captions_input)[0] gets the current batch size)
 
         outputs = []
         previous_state = initial_state
         with tf.variable_scope("LSTM_attention"):
+            W_att = tf.get_variable("W_att",
+                        shape=[self.config.hidden_dim, self.config.hidden_dim_att],
+                        initializer=tf.contrib.layers.xavier_initializer())
+            U_att = tf.get_variable("U_att",
+                        shape=[self.config.hidden_dim_att, self.config.no_of_img_feature_vecs],
+                        initializer=tf.contrib.layers.xavier_initializer())
+            b1_att = tf.get_variable("b1_att",
+                        shape=[1, self.config.hidden_dim_att],
+                        initializer=tf.constant_initializer(0))
+            b2_att = tf.get_variable("b2_att",
+                        shape=[1, self.config.no_of_img_feature_vecs],
+                        initializer=tf.constant_initializer(0))
+
             for timestep in range(self.config.max_caption_length):
                 if timestep > 0:
                     tf.get_variable_scope().reuse_variables()
 
                 if timestep == 0:
-                    step_imgs_input = tf.reduce_mean(self.imgs_ph, axis=1)
-                    # (step_img_input has shape [batch_size, 300])
+                    att_probs = (1/self.config.no_of_img_feature_vecs)*tf.ones((
+                                tf.shape(self.captions_input)[0],
+                                self.config.no_of_img_feature_vecs, 1))
+                    # (att_probs has shape [batch_size, 64, 1])
                 else:
-                    step_imgs_input = tf.reduce_mean(self.imgs_ph, axis=1)
-                    # (step_img_input has shape [batch_size, 300])
+                    previous_output = outputs[timestep-1] # (h_{t-1})
+                    h_att_linear = tf.matmul(previous_output, W_att) + b1_att
+                    h_att = tf.nn.relu(h_att_linear)
+                    # (h_att has shape [batch_size, hidden_dim_att])
+
+                    att_probs_linear = tf.matmul(h_att, U_att) + b2_att
+                    att_probs = tf.nn.softmax(att_probs_linear)
+                    # (att_probs has shape [batch_size, 64])
+
+                    att_probs = tf.expand_dims(att_probs, 2)
+                    # (att_probs has shape [batch_size, 64, 1])
+
+                scaled_img_features = att_probs*self.imgs_ph
+                step_imgs_input = tf.reduce_sum(scaled_img_features, axis=1)
+                # (step_imgs_input has shape [batch_size, 300])
 
                 step_captions_input = self.captions_input[:, timestep, :]
                 # (step_captions_input has shape [batch_size, 300])
+
                 step_input = tf.concat(1, [step_imgs_input, step_captions_input])
                 # (step_input has shape [batch_size, 600])
 
                 output, new_state = multilayer_LSTM(step_input, previous_state)
-                # (output = h, new_state is a tuple containing both h and c)
+                # (output = h (at the top layer), new_state is a tuple containing
+                # both h and c (for all layers if we have more than one layer))
                 # (output thus has shape [batch_size, hidden_dim])
 
                 previous_state = new_state
-
                 outputs.append(output)
 
         # (outputs is a list of max_caption_length elements, each of which is a
@@ -243,32 +272,26 @@ class LSTM_attention_Model(object):
 
     def generate_img_caption(self, session, img_features, vocabulary):
         # initialize the caption as "<SOS>":
-        caption = np.zeros((1, 1))
-        caption[0] = np.array(vocabulary.index("<SOS>"))
+        caption = np.zeros((1, self.config.max_caption_length))
+        caption[0, 0] = np.array(vocabulary.index("<SOS>"))
         # format the img_vector so it can be fed to the NN:
         img = np.zeros((1, self.config.no_of_img_feature_vecs,
                     self.config.img_feature_dim))
         img[0] = img_features
-        # we will get one vector of logits for each timestep, 0: img, 1: "<SOS>",
-        # we want to get the one corr. to "<SOS>":
-        prediction_index = 1
+        prediction_index = 0
 
         # predict the next word given the img and the current caption until we
         # get "<EOS>" or the caption length hits a max value:
-        while int(caption[0][-1]) is not vocabulary.index("<EOS>") and\
-                    caption.shape[1] < self.config.max_caption_length:
+        while int(caption[0][prediciton_index]) is not vocabulary.index("<EOS>") and\
+                    prediciton_index < self.config.max_caption_length:
             feed_dict = self.create_feed_dict(caption, img)
             logits = session.run(self.logits, feed_dict=feed_dict)
-            # (logits[0] = logits vector corr. to the img in ex #1 in the batch,
-            # logits[1] = logits vector corr. to <SOS> in ex #1 in the batch, etc)
             # get the logits vector corr. to the last word in the current caption:
             prediction_logits = logits[prediction_index]
             # get the index of the predicted word:
             predicted_word_index = np.argmax(prediction_logits)
-            # add the new word to the caption (only care about the first row):
-            new_word_col = np.zeros((1, 1))
-            new_word_col[0] = np.array(predicted_word_index)
-            caption = np.append(caption, new_word_col, axis=1)
+            # add the new word to the caption:
+            caption[0, prediction_index+1] = predicted_word_index
             # increment prediction_index so that we'll look at the new last word
             # of the caption in the next iteration:
             prediction_index += 1
@@ -282,26 +305,25 @@ class LSTM_attention_Model(object):
 
     def generate_captions_on_val(self, session, epoch, vocabulary, val_set_size=5000):
         if self.debug:
-            val_set_size = 101
+            val_set_size = 5
 
-        # get the map from img id to feature vector:
-        val_img_id_2_feature_vector =\
-                    cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
-        # turn the map into a list of tuples (to make it iterable):
-        val_img_id_feature_vector_list = val_img_id_2_feature_vector.items()\
-        # randomly shuffle the list of tuples (to take different subsets when
+        val_img_ids = cPickle.load(open("coco/data/val_img_ids"))
+        # randomly shuffle the img ids (to take different subsets when
         # val_set_size is not set to 5000):
-        #random.shuffle(val_img_id_feature_vector_list)
+        #random.shuffle(val_img_ids)
         # take a subset (of size val_set_size) of all val imgs:
-        val_set = val_img_id_feature_vector_list[0:val_set_size]
+        val_set = val_img_ids[0:val_set_size]
 
         captions = []
-        for step, (img_id, img_vector) in enumerate(val_set):
-            if step % 10 == 0:
+        for step, img_id in enumerate(val_set):
+            if step % 1 == 0:
                 print "generating captions on val: %d" % step
 
+            img_features = cPickle.load(
+                        open("coco/data/img_features_attention/%d" % img_id))
+
             # generate a caption for the img:
-            img_caption = self.generate_img_caption(session, img_vector, vocabulary)
+            img_caption = self.generate_img_caption(session, img_features, vocabulary)
             # save the generated caption together with the img id in the format
             # expected by the COCO evaluation script:
             caption_obj = {}
