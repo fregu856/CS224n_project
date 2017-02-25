@@ -27,7 +27,7 @@ class GRU_attention_Config(object):
         if debug:
             self.max_no_of_epochs = 2
         else:
-            self.max_no_of_epochs = 50
+            self.max_no_of_epochs = 60
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
@@ -273,7 +273,7 @@ class GRU_attention_Model(object):
                         feed_dict=feed_dict)
             batch_losses.append(batch_loss)
 
-            if step % 1 == 0:
+            if step % 100 == 0:
                 print "batch: %d | loss: %f" % (step, batch_loss)
                 log("batch: %d | loss: %f" % (step, batch_loss))
 
@@ -351,7 +351,7 @@ class GRU_attention_Model(object):
 
         captions = []
         for step, img_id in enumerate(val_set):
-            if step % 1 == 0:
+            if step % 100 == 0:
                 print "generating captions on val: %d" % step
                 log("generating captions on val: %d" % step)
 
@@ -414,7 +414,7 @@ def main():
 
             # generate captions on a (subset) of val:
             captions_file = model.generate_captions_on_val(sess, epoch,
-                        model.vocabulary, val_set_size=5)
+                        model.vocabulary, val_set_size=1000)
             # evaluate the generated captions (compute metrics):
             eval_result_dict = evaluate_captions(captions_file)
             # save the epoch evaluation metrics:
@@ -431,7 +431,7 @@ def main():
             log("epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"]))
 
     # plot the loss and the different metrics vs epoch:
-    #plot_performance(config.model_dir)
+    plot_performance(config.model_dir)
 
     #compare_captions(config.model_dir, 7)
 
