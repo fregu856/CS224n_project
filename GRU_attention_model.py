@@ -386,7 +386,7 @@ def main():
     eval_metrics_per_epoch = []
 
     init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=model.config.max_no_of_epochs)
 
     with tf.Session() as sess:
         sess.run(init)

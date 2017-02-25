@@ -261,7 +261,7 @@ class LSTM_Model(object):
         val_img_id_2_feature_vector =\
                     cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
         # turn the map into a list of tuples (to make it iterable):
-        val_img_id_feature_vector_list = val_img_id_2_feature_vector.items()\
+        val_img_id_feature_vector_list = val_img_id_2_feature_vector.items()
         # randomly shuffle the list of tuples (to take different subsets when
         # val_set_size is not set to 5000):
         #random.shuffle(val_img_id_feature_vector_list)
@@ -302,7 +302,7 @@ def main():
     eval_metrics_per_epoch = []
 
     init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=model.config.max_no_of_epochs)
 
     with tf.Session() as sess:
         sess.run(init)

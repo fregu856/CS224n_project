@@ -386,7 +386,7 @@ def main():
     eval_metrics_per_epoch = []
 
     init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=model.config.max_no_of_epochs)
 
     with tf.Session() as sess:
         sess.run(init)
@@ -429,7 +429,7 @@ def main():
 
             print "epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss, eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"])
             log("epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss, eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"]))
-            
+
     # plot the loss and the different metrics vs epoch:
     plot_performance(config.model_dir)
 
