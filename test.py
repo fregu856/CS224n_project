@@ -126,32 +126,38 @@ import numpy as np
 
     # initialize the model containing W_img and b_img:
 
-from LSTM_model import LSTM_Config, LSTM_Model
-import numpy as np
-import tensorflow as tf
+# ################33
+# from LSTM_model import LSTM_Config, LSTM_Model
+# import numpy as np
+# import tensorflow as tf
+#
+# config = LSTM_Config()
+# dummy_embeddings = np.zeros((config.vocab_size, config.embed_dim),
+#             dtype=np.float32)
+# model = LSTM_Model(config, dummy_embeddings, mode="demo")
+#
+# # create the saver:
+# saver = tf.train.Saver()
+#
+# with tf.Session() as sess:
+#     # restore all model variables:
+#     params_dir = "coco/data/img_features_attention/transform_params"
+#     saver.restore(sess, "%s/model" % params_dir)
+#
+#     # get the restored W_img and b_img:
+#     with tf.variable_scope("img_transform", reuse=True):
+#         W_img = tf.get_variable("W_img")
+#         b_img = tf.get_variable("b_img")
+#
+#         W_img = sess.run(W_img)
+#         b_img = sess.run(b_img)
+#
+#         transform_params = {}
+#         transform_params["W_img"] = W_img
+#         transform_params["b_img"] = b_img
+#         cPickle.dump(transform_params, open("coco/data/img_features_attention/transform_params/numpy_params", "wb"))
 
-config = LSTM_Config()
-dummy_embeddings = np.zeros((config.vocab_size, config.embed_dim),
-            dtype=np.float32)
-model = LSTM_Model(config, dummy_embeddings, mode="demo")
-
-# create the saver:
-saver = tf.train.Saver()
-
-with tf.Session() as sess:
-    # restore all model variables:
-    params_dir = "coco/data/img_features_attention/transform_params"
-    saver.restore(sess, "%s/model" % params_dir)
-
-    # get the restored W_img and b_img:
-    with tf.variable_scope("img_transform", reuse=True):
-        W_img = tf.get_variable("W_img")
-        b_img = tf.get_variable("b_img")
-
-        W_img = sess.run(W_img)
-        b_img = sess.run(b_img)
-
-        transform_params = {}
-        transform_params["W_img"] = W_img
-        transform_params["b_img"] = b_img
-        cPickle.dump(transform_params, open("coco/data/img_features_attention/transform_params/numpy_params", "wb"))
+# from utilities import plot_comparison_curves
+#
+# plot_comparison_curves(["models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1", "models/LSTMs_attention/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1"], "loss", {"param": "batch size", "param_values": [128, 256]})
+# plot_comparison_curves(["models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1", "models/LSTMs_attention/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1"], "CIDEr", {"param": "batch size", "param_values": [128, 256]})

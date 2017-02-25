@@ -183,7 +183,7 @@ def detokenize_caption(tokenized_caption, vocabulary):
     return caption
 
 def evaluate_captions(captions_file):
-    # define where the ground truth captions for the val imgs are located:
+    # define where the ground truth captions for the val (and test) imgs are located:
     true_captions_file = "coco/annotations/captions_val2014.json"
 
     coco = COCO(true_captions_file)
