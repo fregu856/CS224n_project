@@ -1,5 +1,11 @@
 """
-- Assumes that "split_img_ids.py" already has been run.
+- ASSUMES: that "split_img_ids.py" already has been run. That the COCO Python API
+  has been installed. That the files captions_train2014.json,
+  captions_val2014.json and glove.6B.300d.txt is placed in coco/annotations.
+  That the folder coco/data exists.
+
+- DOES: all necessary pre-processing of the captions. Creates a number of files,
+  see all "cPickle.dump" below. 
 """
 
 import numpy as np
@@ -27,7 +33,8 @@ def get_captions(type_of_data):
     # initialize COCO api for captions:
     coco = COCO(captions_file)
 
-    # get indices for all "type_of_data" images (all train or val images) (original split on mscoco.org):
+    # get indices for all "type_of_data" images (all train or val imgs
+    # (original data split on mscoco.org)):
     img_ids = coco.getImgIds()
 
     for step, img_id in enumerate(img_ids):

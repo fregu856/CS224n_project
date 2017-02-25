@@ -1,7 +1,11 @@
 """
-- Assumes that the image dataset has been manually split such that all test
+- ASSUMES: that the image dataset has been manually split such that all test
   images are stored in "coco/images/test/" and all val images are stored in
   "coco/images/val".
+
+- DOES: creates two files (val_img_ids, test_img_ids) containing the img ids for
+  all val and test imgs, respectively. Is later used to sort an img as either
+  train, val or test.
 """
 
 import cPickle
