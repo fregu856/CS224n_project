@@ -25,6 +25,7 @@ from GRU_model import GRU_Config, GRU_Model
 from LSTM_model import LSTM_Config, LSTM_Model
 from GRU_attention_model import GRU_attention_Config, GRU_attention_Model
 from LSTM_attention_model import LSTM_attention_Config, LSTM_attention_Model
+from extract_img_features_attention import extract_img_features_attention
 
 if len(sys.argv) < 2:
     raise Exception("Must be called in one of the following ways: \n%s\n%s\n%s\n%s" %\
@@ -54,6 +55,20 @@ else:
     random.shuffle(val_img_ids)
     img_id = int(val_img_ids[0])
 
+# get the img's file name:
+true_captions_file = "coco/annotations/captions_val2014.json"
+coco = COCO(true_captions_file)
+img = coco.loadImgs(img_id)[0]
+img_file_name = img["file_name"]
+
+# get the img's features:
+if model_type in ["LSTM", "GRU"]:
+    img_features = val_img_id_2_feature_vector[img_id]
+elif model_type in ["LSTM_attention", "GRU_attention"]:
+    extract_img_features_attention(["coco/images/val/%s" % img_file_name], demo=True)
+    img_features = cPickle.load(
+                open("coco/data/img_features_attention/%d" % -1))
+
 # initialize the model:
 if model_type == "GRU":
     config = GRU_Config()
@@ -76,13 +91,6 @@ elif model_type == "GRU_attention":
                 dtype=np.float32)
     model = GRU_attention_Model(config, dummy_embeddings, mode="demo")
 
-# get the img's features:
-if model_type in ["LSTM", "GRU"]:
-    img_features = val_img_id_2_feature_vector[img_id]
-elif model_type in ["LSTM_attention", "GRU_attention"]:
-    img_features = cPickle.load(
-                open("coco/data/img_features_attention/%d" % img_id))
-
 # create the saver:
 saver = tf.train.Saver()
 
@@ -104,17 +112,12 @@ with tf.Session() as sess:
         img_caption, attention_maps = model.generate_img_caption(sess,
                     img_features, vocabulary)
 
-# get the img's file name:
-true_captions_file = "coco/annotations/captions_val2014.json"
-coco = COCO(true_captions_file)
-img = coco.loadImgs(img_id)[0]
-img_file_name = img["file_name"]
-
 # display the img and its generated caption:
 I = io.imread("coco/images/val/%s" % img_file_name)
 plt.imshow(I)
 plt.axis('off')
 plt.title(img_caption)
+print "img id: %d" % img_id
 
 if model_type in ["LSTM_attention", "GRU_attention"]:
     # get a gray scale version of the img:

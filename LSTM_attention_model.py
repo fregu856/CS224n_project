@@ -427,9 +427,9 @@ def main():
             saver.save(sess, "%s/weights/model" % model.config.model_dir,
                         global_step=epoch)
 
-            print "epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"])
-            log("epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"]))
-
+            print "epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss, eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"])
+            log("epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss, eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"]))
+            
     # plot the loss and the different metrics vs epoch:
     plot_performance(config.model_dir)
 

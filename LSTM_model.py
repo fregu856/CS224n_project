@@ -26,7 +26,7 @@ class LSTM_Config(object):
             self.max_no_of_epochs = 2
         else:
             self.max_no_of_epochs = 60
-        self.max_caption_length = 30
+        self.max_caption_length = 40
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
@@ -343,8 +343,8 @@ def main():
             saver.save(sess, "%s/weights/model" % model.config.model_dir,
                         global_step=epoch)
 
-            print "epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"])
-            log("epoch loss: %f | BLEU4: %f" % (epoch_loss, eval_result_dict["Bleu_4"]))
+            print "epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss, eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"])
+            log("epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss, eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"]))
 
     # plot the loss and the different metrics vs epoch:
     plot_performance(config.model_dir)
