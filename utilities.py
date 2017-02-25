@@ -15,8 +15,6 @@ from pycocotools.coco import COCO
 sys.path.append("/home/fregu856/CS224n/project/CS224n_project/coco/coco-caption")
 from pycocoevalcap.eval import COCOEvalCap
 
-from extract_img_features import extract_img_features
-
 import json
 from json import encoder
 encoder.FLOAT_REPR = lambda o: format(o, '.3f')
@@ -348,8 +346,34 @@ def log(log_message):
         log_file.write(datetime.strftime(datetime.today(), "%Y-%m-%d %H:%M:%S") + ": " + log_message)
         log_file.write("\n") # (so the next message is put on a new line)
 
+def plot_comparison_curves(model_dirs, metric, params_dict):
+    param = params_dict["param"]
+    param_values = params_dict["param_values"]
+
+    for model_dir, param_value in zip(model_dirs, param_values):
+        if metric == "loss":
+            loss_per_epoch = cPickle.load(open("%s/losses/loss_per_epoch" % model_dir))
+            plt.plot(loss_per_epoch, label="%s: %d" %(param, param_value))
+
+        elif metric in ["CIDEr", "Bleu_4", "ROUGE_L", "METEOR"]:
+            metrics_per_epoch = cPickle.load(open("%s/eval_results/metrics_per_epoch"\
+                % model_dir))
+
+            # separate the data for the different metrics:
+            metric_per_epoch = []
+            for epoch_metrics in metrics_per_epoch:
+                metric_per_epoch.append(epoch_metrics[metric])
+            plt.plot(metric_per_epoch, label="%s: %d" %(param, param_value))
+
+    plt.ylabel(metric, fontsize=15)
+    plt.xlabel("epoch", fontsize=15)
+    plt.title("", fontsize=15)
+    # put the legend in the upper right corner of the figure:
+    plt.legend(bbox_to_anchor=(1, 1), bbox_transform=plt.gcf().transFigure, fontsize=15)
+    plt.show()
+
 def main():
-    map_img_id_2_file_name()
+    test = 1
 
 if __name__ == '__main__':
     main()
