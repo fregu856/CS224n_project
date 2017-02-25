@@ -198,7 +198,6 @@ class LSTM_Model(object):
 
     def run_epoch(self, session):
         batch_losses = []
-        start_time = time.time()
 
         for step, (captions, imgs, labels) in enumerate(train_data_iterator(self)):
             feed_dict = self.create_feed_dict(captions, imgs,
@@ -294,10 +293,10 @@ class LSTM_Model(object):
         return captions_file
 
 def main():
-    config = LSTM_Config(debug=True)
+    config = LSTM_Config()
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
-    model = LSTM_Model(config, GloVe_embeddings, debug=True)
+    model = LSTM_Model(config, GloVe_embeddings)
 
     loss_per_epoch = []
     eval_metrics_per_epoch = []
@@ -331,7 +330,7 @@ def main():
 
             # generate captions on a (subset) of val:
             captions_file = model.generate_captions_on_val(sess, epoch,
-                        model.vocabulary, val_set_size=1000)
+                        model.vocabulary, val_set_size=200)
             # evaluate the generated captions (compute metrics):
             eval_result_dict = evaluate_captions(captions_file)
             # save the epoch evaluation metrics:
