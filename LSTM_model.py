@@ -1,3 +1,10 @@
+"""
+- ASSUMES: that preprocess_captions.py, extract_img_features.py and
+  create_initial_embeddings.py has already been run.
+
+- DOES: defines the LSTM model and contains a script for training the model.
+"""
+
 import numpy as np
 import tensorflow as tf
 
@@ -9,9 +16,12 @@ import cPickle
 import random
 
 from utilities import train_data_iterator, detokenize_caption, evaluate_captions
-from utilities import plot_performance, compare_captions, log
+from utilities import plot_performance, log
 
 class LSTM_Config(object):
+"""
+- DOES: config object containing a number of parameters.
+"""
 
     def __init__(self, debug=False):
         self.dropout = 0.5
@@ -33,6 +43,9 @@ class LSTM_Config(object):
         self.model_dir = "models/LSTMs/%s" % self.model_name
 
 class LSTM_Model(object):
+""""
+- DOES: defines the LSTM model.
+""""
 
     def __init__(self, config, GloVe_embeddings, debug=False, mode="training"):
         self.GloVe_embeddings = GloVe_embeddings
@@ -301,13 +314,13 @@ def main():
     loss_per_epoch = []
     eval_metrics_per_epoch = []
 
-    init = tf.global_variables_initializer()
+    #init = tf.global_variables_initializer()
     saver = tf.train.Saver(max_to_keep=model.config.max_no_of_epochs)
 
     saver.restore(sess, "models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=2/model-59")
 
     with tf.Session() as sess:
-        sess.run(init)
+        #sess.run(init)
 
         for epoch in range(config.max_no_of_epochs):
             print "###########################"
@@ -350,8 +363,6 @@ def main():
 
     # plot the loss and the different metrics vs epoch:
     plot_performance(config.model_dir)
-
-    #compare_captions(config.model_dir, 7)
 
 if __name__ == '__main__':
     main()
