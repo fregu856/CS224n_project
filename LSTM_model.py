@@ -19,23 +19,23 @@ from utilities import train_data_iterator, detokenize_caption, evaluate_captions
 from utilities import plot_performance, log
 
 class LSTM_Config(object):
-"""
-- DOES: config object containing a number of parameters.
-"""
+    """
+    - DOES: config object containing a number of parameters.
+    """
 
     def __init__(self, debug=False):
-        self.dropout = 0.5
-        self.embed_dim = 300
-        self.hidden_dim = 200
+        self.dropout = 0.5 # (keep probability)
+        self.embed_dim = 300 # (dimension of word embeddings)
+        self.hidden_dim = 200 # (dimension of hidden state)
         self.batch_size = 256
         self.lr = 0.001
-        self.img_dim = 2048
-        self.vocab_size = 9855
-        self.no_of_layers = 2
+        self.img_dim = 2048 # (dimension of img feature vectors)
+        self.vocab_size = 9855 # (no of words in the vocabulary)
+        self.no_of_layers = 3 # (no of layers in the RNN)
         if debug:
             self.max_no_of_epochs = 2
         else:
-            self.max_no_of_epochs = 15
+            self.max_no_of_epochs = 100
         self.max_caption_length = 40
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
@@ -43,25 +43,43 @@ class LSTM_Config(object):
         self.model_dir = "models/LSTMs/%s" % self.model_name
 
 class LSTM_Model(object):
-""""
-- DOES: defines the LSTM model.
-""""
+    """
+    - DOES: defines the LSTM model.
+    """
 
     def __init__(self, config, GloVe_embeddings, debug=False, mode="training"):
+        """
+        - DOES: initializes some parameters and adds everything to the
+        computational graph.
+        """
+
         self.GloVe_embeddings = GloVe_embeddings
         self.debug = debug
         self.config = config
         if mode is not "demo":
+            # create all dirs for saving weights and eval results:
             self.create_model_dirs()
+            # load all data from disk needed for training:
             self.load_utilities_data()
+        # add placeholders to the comp graph:
         self.add_placeholders()
+        # transform the placeholders and add the final model input to the graph:
         self.add_input()
+        # compute logits (unnormalized prediction probs) and add to the graph:
         self.add_logits()
         if mode is not "demo":
+            # compute the loss and add to the graph:
             self.add_loss_op()
+            # add a training operation for optimizing the loss to the graph:
             self.add_training_op()
 
     def create_model_dirs(self):
+        """
+        - DOES: creates all model directories needed for saving weights, losses,
+        evaluation metrics etc. during training.
+        """
+
+        # create the main model directory:
         if not os.path.exists(self.config.model_dir):
             os.mkdir(self.config.model_dir)
 
@@ -81,11 +99,16 @@ class LSTM_Model(object):
         if not os.path.exists("%s/eval_results" % self.config.model_dir):
             os.mkdir("%s/eval_results" % self.config.model_dir)
 
-        # create the dir where performance plots will be saved during training:
+        # create the dir where performance plots will be saved after training:
         if not os.path.exists("%s/plots" % self.config.model_dir):
             os.mkdir("%s/plots" % self.config.model_dir)
 
     def load_utilities_data(self):
+        """
+        - DOES: loads all data from disk (vocabulary, img feature vectors etc.)
+        needed for training.
+        """
+
         print "loading utilities data..."
         log("loading utilities data...")
 
@@ -126,75 +149,151 @@ class LSTM_Model(object):
         log("all utilities data is loaded!")
 
     def add_placeholders(self):
+        """
+        - DOES: adds placeholders for captions, imgs, labels and keep_prob to
+        the computational graph. These placeholders will be fed actual data
+        corresponding to each batch during training.
+        """
+
+        # add the placeholder for the batch captions (row i of caption_ph will
+        # be the tokenized caption for ex i in the batch):
         self.captions_ph = tf.placeholder(tf.int32,
-                    shape=[None, None],
+                    shape=[None, None], # ([batch_size, caption_length])
                     name="captions_ph")
+        # add the placeholder for the batch imgs (row i of imgs_ph will be the
+        # img feature vector for ex i in the batch):
         self.imgs_ph = tf.placeholder(tf.float32,
-                    shape=[None, self.config.img_dim],
+                    shape=[None, self.config.img_dim], # ([batch_size, img_dim])
                     name="imgs_ph")
+        # add the placeholder for the batch labels (row i of labels_ph will
+        # be the labels/targets for ex i in the batch):
         self.labels_ph = tf.placeholder(tf.int32,
-                    shape=[None, None],
+                    shape=[None, None], # ([batch_size, caption_length+1])
                     name="labels_ph")
-        self.dropout_ph = tf.placeholder(tf.float32, name="dropout_ph")
+        # add the placeholder for the keep_prob (with what probability we will
+        # keep a hidden unit during training):
+        self.dropout_ph = tf.placeholder(tf.float32, name="dropout_ph") # (keep_prob)
 
     def create_feed_dict(self, captions_batch, imgs_batch, labels_batch=None, dropout=1):
+        """
+        - DOES: returns a feed_dict mapping the placeholders to the actual
+        input data (this is how we run the network on specific data).
+        """
+
         feed_dict = {}
         feed_dict[self.captions_ph] = captions_batch
         feed_dict[self.imgs_ph] = imgs_batch
         feed_dict[self.dropout_ph] = dropout
         if labels_batch is not None:
+            # only add the labels data if it's specified (during caption
+            # generation, we won't have any labels):
             feed_dict[self.labels_ph] = labels_batch
 
         return feed_dict
 
     def add_input(self):
+        """
+        - DOES: transforms the imgs_ph to a tensor of shape
+        [batch_size, 1, embed_dim], gets the word vector for each tokenized word
+        in captions_ph giving a tensor of shape
+        [batch_size, caption_length, embed_dim], and finally concatenates the
+        two into a tensor of shape [batch_size, caption_length+1, embed_dim].
+        This tensor is the input to the network, meaning that we will feed in
+        the img, then <SOS>, then each word in the caption, and then
+        finally <EOS>.
+        """
+
+        # transform img_ph into a tensor of shape [batch_size, 1, embed_dim]:
         with tf.variable_scope("img_transform"):
+            # initialize the transform parameters:
             W_img = tf.get_variable("W_img",
                         shape=[self.config.img_dim, self.config.embed_dim],
                         initializer=tf.contrib.layers.xavier_initializer())
             b_img = tf.get_variable("b_img", shape=[1, self.config.embed_dim],
                         initializer=tf.constant_initializer(0))
+            # tranform img_ph to shape [batch_size, embed_dim]:
             imgs_input = tf.nn.sigmoid(tf.matmul(self.imgs_ph, W_img) + b_img)
+            # reshape into shape [batch_size, 1, embed_dim]:
             imgs_input = tf.expand_dims(imgs_input, 1)
 
+        # get the word vector for each tokenized word in captions_ph:
         with tf.variable_scope("captions_embed"):
+            # initialize the embeddings matrix with pretrained GloVe vectors (
+            # note that we will train the embeddings matrix as well!):
             word_embeddings = tf.get_variable("word_embeddings",
                         initializer=self.GloVe_embeddings)
+            # get the word vectors (gives a tensor of shape
+            # [batch_size, caption_length, embed_dim]):
             captions_input = tf.nn.embedding_lookup(word_embeddings,
                         self.captions_ph)
 
+        # concatenate imgs_input and captions_input to get the final input (has
+        # shape [batch_size, caption_length+1, embed_dim])
         self.input = tf.concat(1, [imgs_input, captions_input])
 
     def add_logits(self):
-        LSTM = tf.nn.rnn_cell.BasicLSTMCell(self.config.hidden_dim)
-        LSTM_dropout = tf.nn.rnn_cell.DropoutWrapper(LSTM,
+        """
+        - DOES: feeds self.input through an LSTM, producing a hidden state vector
+        for each word/img and computes all corresponding logits (unnormalized
+        prediction probabilties over the vocabulary, a softmax step but without
+        the actual softmax).
+        """
+
+        # create an LSTM cell:
+        LSTM_cell = tf.nn.rnn_cell.BasicLSTMCell(self.config.hidden_dim)
+        # apply dropout to the LSTM cell:
+        LSTM_cell = tf.nn.rnn_cell.DropoutWrapper(LSTM_cell,
                     input_keep_prob=self.dropout_ph,
                     output_keep_prob=self.dropout_ph)
-        multilayer_LSTM = tf.nn.rnn_cell.MultiRNNCell(
-                    [LSTM_dropout]*self.config.no_of_layers)
-        # (tf.shape(self.input)[0] gets the current batch size)
-        initial_state = multilayer_LSTM.zero_state(tf.shape(self.input)[0],
+        # stack no_of_layers LSTM cells on top of each other (for a deep LSTM):
+        stacked_LSTM_cell = tf.nn.rnn_cell.MultiRNNCell(
+                    [LSTM_cell]*self.config.no_of_layers)
+        # initialize the state of the stacked LSTM cell (tf.shape(self.input)[0]
+        # gets the current batch size) (the state contains both h and c for all
+        # layers, thus its format is not trivial):
+        initial_state = stacked_LSTM_cell.zero_state(tf.shape(self.input)[0],
                     tf.float32)
 
-        outputs, final_state = tf.nn.dynamic_rnn(multilayer_LSTM,
+        # feed self.input trough the stacked LSTM cell and get the (top) hidden
+        # state vector for each word/img returned in outputs (which has shape
+        # [batch_size, caption_length+1, hidden_dim]) (final_state contains
+        # h and c for all layers at the final timestep, not relevant here):
+        outputs, final_state = tf.nn.dynamic_rnn(stacked_LSTM_cell,
                     self.input, initial_state=initial_state)
+        # reshape outputs into shape [batch_size*(caption_length+1), hidden_dim]
+        # (outputs[0]: h for the img in ex 1 in the batch, outputs[1]: h for <SOS>
+        # in ex 1 in the batch etc.):
         outputs = tf.reshape(outputs, [-1, self.config.hidden_dim])
 
+        # compute corresponding logits for each hidden state vector in outputs,
+        # resulting in a tensor self.logits of shape
+        # [batch_size*(caption_length+1), vocab_size] (each word in self.input
+        # will have a corr. logits vector, which is an unnorm. prob. distr. over
+        # the vocab. The largets element corresponds to the predicted next word):
         with tf.variable_scope("logits"):
+            # initialize the transform parametrs:
             W_logits = tf.get_variable("W_logits",
                         shape=[self.config.hidden_dim, self.config.vocab_size],
                         initializer=tf.contrib.layers.xavier_initializer())
             b_logits = tf.get_variable("b_logits",
                         shape=[1, self.config.vocab_size],
                         initializer=tf.constant_initializer(0))
+            # compute the logits:
             self.logits = tf.matmul(outputs, W_logits) + b_logits
 
     def add_loss_op(self):
+        """
+        - DOES: computes the CE loss for the batch.
+        """
+
+        # reshape labels_ph into shape [batch_size*(caption_length+1), ] (to
+        # match the shape of self.logits):
         labels = tf.reshape(self.labels_ph, [-1])
+        print labels.get_shape()
 
         # remove all -1 labels and their corresponding logits (-1 labels
         # correspond to the img or <EOS> step, the predicitons at these
-        # steps are irrelevant):
+        # steps are irrelevant and should not contribute to the loss):
         mask = tf.greater_equal(labels, 0)
         masked_labels = tf.boolean_mask(labels, mask)
         masked_logits = tf.boolean_mask(self.logits, mask)
@@ -314,13 +413,11 @@ def main():
     loss_per_epoch = []
     eval_metrics_per_epoch = []
 
-    #init = tf.global_variables_initializer()
+    init = tf.global_variables_initializer()
     saver = tf.train.Saver(max_to_keep=model.config.max_no_of_epochs)
 
-    saver.restore(sess, "models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=2/model-59")
-
     with tf.Session() as sess:
-        #sess.run(init)
+        sess.run(init)
 
         for epoch in range(config.max_no_of_epochs):
             print "###########################"
