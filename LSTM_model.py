@@ -70,7 +70,7 @@ class LSTM_Model(object):
         if mode is not "demo":
             # compute the loss and add to the graph:
             self.add_loss_op()
-            # add a training operation for optimizing the loss to the graph:
+            # add a training operation (for optimizing the loss) to the graph:
             self.add_training_op()
 
     def create_model_dirs(self):
@@ -289,7 +289,6 @@ class LSTM_Model(object):
         # reshape labels_ph into shape [batch_size*(caption_length+1), ] (to
         # match the shape of self.logits):
         labels = tf.reshape(self.labels_ph, [-1])
-        print labels.get_shape()
 
         # remove all -1 labels and their corresponding logits (-1 labels
         # correspond to the img or <EOS> step, the predicitons at these
@@ -298,22 +297,37 @@ class LSTM_Model(object):
         masked_labels = tf.boolean_mask(labels, mask)
         masked_logits = tf.boolean_mask(self.logits, mask)
 
+        # compute the CE loss for each word in the batch:
         loss_per_word = tf.nn.sparse_softmax_cross_entropy_with_logits(
                     masked_logits, masked_labels)
+        # average the loss over all words:
         loss = tf.reduce_mean(loss_per_word)
 
         self.loss = loss
 
     def add_training_op(self):
+        """
+        - DOES: creates a training operator for optimizing the loss.
+        """
+
         optimizer = tf.train.AdamOptimizer(learning_rate=self.config.lr)
         self.train_op = optimizer.minimize(self.loss)
 
     def run_epoch(self, session):
-        batch_losses = []
+        """
+        - DOES: runs one epoch, i.e., for each batch it: computes the batch loss
+        (forwardprop), computes all gradients w.r.t to the batch loss and updates
+        all network variables/parameters accordingly (backprop).
+        """
 
+        batch_losses = []
         for step, (captions, imgs, labels) in enumerate(train_data_iterator(self)):
+            # create a feed_dict with the batch data:
             feed_dict = self.create_feed_dict(captions, imgs,
                         labels_batch=labels, dropout=self.config.dropout)
+            # compute the batch loss and compute & apply all gradients w.r.t to
+            # the batch loss (without self.train_op in the call, the network
+            # would not train, we would only compute the batch loss):
             batch_loss, _ = session.run([self.loss, self.train_op],
                         feed_dict=feed_dict)
             batch_losses.append(batch_loss)
@@ -325,17 +339,24 @@ class LSTM_Model(object):
             if step > 5 and self.debug:
                 break
 
+        # return a list containing the batch loss for each batch:
         return batch_losses
 
     def generate_img_caption(self, session, img_vector, vocabulary):
+        """
+        - DOES: generates a caption for the img feature vector img_vector.
+        """
+
         # initialize the caption as "<SOS>":
         caption = np.zeros((1, 1))
         caption[0] = np.array(vocabulary.index("<SOS>"))
-        # format the img_vector so it can be fed to the NN:
+        # format img_vector so it can be fed to the network:
         img = np.zeros((1, self.config.img_dim))
         img[0] = img_vector
-        # we will get one vector of logits for each timestep, 0: img, 1: "<SOS>",
-        # we want to get the one corr. to "<SOS>":
+
+        # we will get one vector of logits for each timestep, element 0 corr. to
+        # the img, element 1 corr. to <SOS> etc., to begin we want to get the
+        # one corr. to "<SOS>":
         prediction_index = 1
 
         # predict the next word given the img and the current caption until we
@@ -344,13 +365,16 @@ class LSTM_Model(object):
                     caption.shape[1] < self.config.max_caption_length:
             feed_dict = self.create_feed_dict(caption, img)
             logits = session.run(self.logits, feed_dict=feed_dict)
-            # (logits[0] = logits vector corr. to the img in ex #1 in the batch,
-            # logits[1] = logits vector corr. to <SOS> in ex #1 in the batch, etc)
-            # get the logits vector corr. to the last word in the current caption:
+            # (logits[0] = logits vector corr. to the img, logits[1] = logits
+            # vector corr. to <SOS> etc.)
+
+            # get the logits vector corr. to the last word in the current caption
+            # (it gives what next word we will predict):
             prediction_logits = logits[prediction_index]
-            # get the index of the predicted word:
+            # get the index of the predicted word (the word in the vocabulary
+            # with the largest (unnormalized) probability):
             predicted_word_index = np.argmax(prediction_logits)
-            # add the new word to the caption (only care about the first row):
+            # add the new word to the caption:
             new_word_col = np.zeros((1, 1))
             new_word_col[0] = np.array(predicted_word_index)
             caption = np.append(caption, new_word_col, axis=1)
@@ -358,7 +382,7 @@ class LSTM_Model(object):
             # of the caption in the next iteration:
             prediction_index += 1
 
-        # get the caption and convert to ints:
+        # get the generated caption and convert to ints:
         caption = caption[0].astype(int)
         # convert the caption to actual text:
         caption = detokenize_caption(caption, vocabulary)
@@ -366,6 +390,12 @@ class LSTM_Model(object):
         return caption
 
     def generate_captions_on_val(self, session, epoch, vocabulary, val_set_size=5000):
+        """
+        - DOES: generates a caption for each of the first val_set_size imgs in
+        the val set, saves them in the format expected by the provided COCO
+        evaluation script and returns the name of the saved file.
+        """
+
         if self.debug:
             val_set_size = 101
 
@@ -374,10 +404,7 @@ class LSTM_Model(object):
                     cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
         # turn the map into a list of tuples (to make it iterable):
         val_img_id_feature_vector_list = val_img_id_2_feature_vector.items()
-        # randomly shuffle the list of tuples (to take different subsets when
-        # val_set_size is not set to 5000):
-        #random.shuffle(val_img_id_feature_vector_list)
-        # take a subset (of size val_set_size) of all val imgs:
+        # take the first val_set_size val imgs:
         val_set = val_img_id_feature_vector_list[0:val_set_size]
 
         captions = []
@@ -405,18 +432,26 @@ class LSTM_Model(object):
         return captions_file
 
 def main():
+    # create a config object:
     config = LSTM_Config()
+    # get the pretrained embeddings matrix:
     GloVe_embeddings = cPickle.load(open("coco/data/embeddings_matrix"))
     GloVe_embeddings = GloVe_embeddings.astype(np.float32)
+    # create an LSTM model object:
     model = LSTM_Model(config, GloVe_embeddings)
 
+    # initialize the list that will contain the loss for each epoch:
     loss_per_epoch = []
+    # initialize the list that will contain all evaluation metrics (BLEU, CIDEr,
+    # METEOR and ROUGE_L) for each epoch:
     eval_metrics_per_epoch = []
 
-    init = tf.global_variables_initializer()
+    # create a saver for saving all model variables/parameters:
     saver = tf.train.Saver(max_to_keep=model.config.max_no_of_epochs)
 
     with tf.Session() as sess:
+        # initialize all variables/parameters:
+        init = tf.global_variables_initializer()
         sess.run(init)
 
         for epoch in range(config.max_no_of_epochs):
@@ -429,7 +464,7 @@ def main():
             log("###########################")
             log("epoch: %d/%d" % (epoch, config.max_no_of_epochs-1))
 
-            # run an epoch and get all losses:
+            # run an epoch and get all batch losses:
             batch_losses = model.run_epoch(sess)
 
             # compute the epoch loss:
@@ -443,11 +478,11 @@ def main():
             # generate captions on a (subset) of val:
             captions_file = model.generate_captions_on_val(sess, epoch,
                         model.vocabulary, val_set_size=1000)
-            # evaluate the generated captions (compute metrics):
+            # evaluate the generated captions (compute eval metrics):
             eval_result_dict = evaluate_captions(captions_file)
             # save the epoch evaluation metrics:
             eval_metrics_per_epoch.append(eval_result_dict)
-            # save the evaluation metrics for epochs to disk:
+            # save the evaluation metrics for all epochs to disk:
             cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch"\
                         % model.config.model_dir, "w"))
 
@@ -455,10 +490,12 @@ def main():
             saver.save(sess, "%s/weights/model" % model.config.model_dir,
                         global_step=epoch)
 
-            print "epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss, eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"])
-            log("epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss, eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"]))
+            print "epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss,
+                        eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"])
+            log("epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss,
+                        eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"]))
 
-    # plot the loss and the different metrics vs epoch:
+    # plot the loss and the different evaluation metrics vs epoch:
     plot_performance(config.model_dir)
 
 if __name__ == '__main__':
