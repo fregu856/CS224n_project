@@ -20,7 +20,7 @@ from utilities import plot_performance, log
 
 class LSTM_Config(object):
     """
-    - DOES: config object containing a number of parameters.
+    - DOES: config object containing a number of model parameters.
     """
 
     def __init__(self, debug=False):
@@ -68,7 +68,7 @@ class LSTM_Model(object):
         # compute logits (unnormalized prediction probs) and add to the graph:
         self.add_logits()
         if mode is not "demo":
-            # compute the loss and add to the graph:
+            # compute the batch loss and add to the graph:
             self.add_loss_op()
             # add a training operation (for optimizing the loss) to the graph:
             self.add_training_op()
@@ -300,7 +300,7 @@ class LSTM_Model(object):
         # compute the CE loss for each word in the batch:
         loss_per_word = tf.nn.sparse_softmax_cross_entropy_with_logits(
                     masked_logits, masked_labels)
-        # average the loss over all words:
+        # average the loss over all words to get the batch loss:
         loss = tf.reduce_mean(loss_per_word)
 
         self.loss = loss
