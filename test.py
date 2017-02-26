@@ -161,3 +161,6 @@ import numpy as np
 #
 # plot_comparison_curves(["models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1", "models/LSTMs_attention/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1"], "loss", {"param": "batch size", "param_values": [128, 256]})
 # plot_comparison_curves(["models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1", "models/LSTMs_attention/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1"], "CIDEr", {"param": "batch size", "param_values": [128, 256]})
+
+from utilities import plot_performance
+plot_performance("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1")

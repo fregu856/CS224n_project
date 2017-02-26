@@ -261,6 +261,13 @@ def plot_performance(model_dir):
     plt.title("METEOR per epoch")
     plt.savefig("%s/plots/METEOR_per_epoch.png" % model_dir)
 
+    for i in range(5):
+        max = np.max(np.array(CIDEr_per_epoch))
+        arg_max = np.argmax(np.array(CIDEr_per_epoch))
+        CIDEr_per_epoch[arg_max] = -1
+        print "%d: epoch %d, CIDEr score: %f" % (i+1, arg_max, max)
+
+
 def compare_captions(model_dir, epoch):
     # define where the ground truth captions for the val imgs are located:
     true_captions_file = "coco/annotations/captions_val2014.json"
@@ -333,17 +340,15 @@ def get_max_caption_length(batch_size):
 
 def log(log_message):
     """
-
-    DESCRIPTION:
     - Adds a log message "log_message" and its time stamp to a log file.
-
     """
 
     # open the log file and make sure that it's closed properly at the end of the
     # block, even if an exception occurs:
     with open("log.txt", "a") as log_file:
         # write the current time stamp and log message to logfile:
-        log_file.write(datetime.strftime(datetime.today(), "%Y-%m-%d %H:%M:%S") + ": " + log_message)
+        log_file.write(datetime.strftime(datetime.today(),
+                    "%Y-%m-%d %H:%M:%S") + ": " + log_message)
         log_file.write("\n") # (so the next message is put on a new line)
 
 def plot_comparison_curves(model_dirs, metric, params_dict):

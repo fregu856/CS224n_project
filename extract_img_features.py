@@ -1,7 +1,12 @@
 """
-- Assumes that the image dataset has been manually split such that all train
+- ASSUMES: that the image dataset has been manually split such that all train
   images are stored in "coco/images/train/", all test images are stored in
-  "coco/images/test/" and all val images are stored in "coco/images/val".
+  "coco/images/test/" and all val images are stored in "coco/images/val". That
+  the Inception-V3 model has been downloaded and placed in inception.
+
+- DOES: extracts a 2048 dimensional feature vector for each train/val/test img
+  and creates dicts mapping from img id to feature vector (
+  train/val/test_img_id_2_feature_vector).
 """
 
 import os
@@ -35,11 +40,10 @@ def load_pretrained_CNN():
 def extract_img_features(img_paths, demo=False):
     """
     - Runs every image in "img_paths" through the pretrained CNN and
-    returns their respective feature vectors (the second-to-last layer
+    returns their respective feature vector (the second-to-last layer
     of the CNN).
     """
 
-    no_of_features = 2048
     img_id_2_feature_vector = {}
 
     # load the Inception-V3 model:
@@ -55,9 +59,10 @@ def extract_img_features(img_paths, demo=False):
                 print step
                 log(str(step))
 
-            # read the image and get its corresponding feature vector:
+            # read the image:
             img_data = gfile.FastGFile(img_path, "rb").read()
             try:
+                # get the img's corresponding feature vector:
                 feature_vector = sess.run(second_to_last_tensor,
                         feed_dict={"DecodeJpeg/contents:0": img_data})
             except:
@@ -76,7 +81,9 @@ def extract_img_features(img_paths, demo=False):
                     img_name = img_path.split("/")[3]
                     img_id = img_name.split("_")[2].split(".")[0].lstrip("0")
                     img_id = int(img_id)
-                else:
+                else: # (if demo:)
+                    # we're only extracting features for one img, (arbitrarily)
+                    # set the img id to 0:
                     img_id = 0
 
                 # save the feature vector and the img id:

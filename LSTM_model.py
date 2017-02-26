@@ -21,7 +21,7 @@ class LSTM_Config(object):
         self.lr = 0.001
         self.img_dim = 2048
         self.vocab_size = 9855
-        self.no_of_layers = 1
+        self.no_of_layers = 2
         if debug:
             self.max_no_of_epochs = 2
         else:

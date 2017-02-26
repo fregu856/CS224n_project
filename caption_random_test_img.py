@@ -2,10 +2,10 @@
 
 """
 - Must be called in one of the following ways:
- $ caption_img.py LSTM [img_id] (for using the best LSTM model)
- $ caption_img.py LSTM_attention [img_id] (for using the best LSTM_attention model)
- $ caption_img.py GRU [img_id] (for using te best GRU model)
- $ caption_img.py GRU_attention [img_id] (for using the best GRU_attention model)
+  $ caption_img.py LSTM [img_id] (for using the best LSTM model)
+  $ caption_img.py LSTM_attention [img_id] (for using the best LSTM_attention model)
+  $ caption_img.py GRU [img_id] (for using te best GRU model)
+  $ caption_img.py GRU_attention [img_id] (for using the best GRU_attention model)
 """
 
 import cPickle

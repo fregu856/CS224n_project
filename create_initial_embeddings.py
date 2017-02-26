@@ -1,5 +1,7 @@
 """
-- Assumes that "preprocess_captions.py" already has been run.
+- ASSUMES: that "preprocess_captions.py" already has been run.
+
+- DOES: creates a word embedding matrix (embeddings_matrix) using GloVe vectors.
 """
 
 import numpy as np

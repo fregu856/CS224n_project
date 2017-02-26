@@ -1,7 +1,16 @@
 """
-- Assumes that the image dataset has been manually split such that all train
+- ASSUMES: that the image dataset has been manually split such that all train
   images are stored in "coco/images/train/", all test images are stored in
-  "coco/images/test/" and all val images are stored in "coco/images/val".
+  "coco/images/test/" and all val images are stored in "coco/images/val". That
+  the Inception-V3 model has been downloaded and placed in inception. That the
+  dict numpy_params (containing W_img and b_img taken from the img_transform
+  step in a well-performing non-attention model) is placed in
+  coco/data/img_features_attention/transform_params.
+
+- DOES: extracts a 64x300 feature array (64 300 dimensional feature vectors,
+  one each for 8x8 different img regions) for each train/val/test img and saves
+  each individual feature array to disk (to coco/data/img_features_attention).
+  Is used in the attention models.
 """
 
 import os
@@ -13,18 +22,19 @@ import numpy as np
 import cPickle
 from utilities import log
 
-from LSTM_model import LSTM_Config, LSTM_Model
 from extract_img_features import load_pretrained_CNN
 
 def extract_img_features_attention(img_paths, demo=False):
     """
-    -
+    - Runs every image in "img_paths" through the pretrained CNN and
+    saves their respective feature array (the third-to-last layer
+    of the CNN transformed to 64x300) to disk.
     """
 
     # load the Inception-V3 model:
     load_pretrained_CNN()
 
-    # load the parameters for the img transform:
+    # load the parameters for the feature vector transform:
     transform_params = cPickle.load(open(
                 "coco/data/img_features_attention/transform_params/numpy_params"))
     W_img = transform_params["W_img"]
@@ -65,7 +75,9 @@ def extract_img_features_attention(img_paths, demo=False):
                     img_name = img_path.split("/")[3]
                     img_id = img_name.split("_")[2].split(".")[0].lstrip("0")
                     img_id = int(img_id)
-                else:
+                else: # (if demo:)
+                    # we're only extracting features for one img, (arbitrarily)
+                    # set the img id to -:
                     img_id = -1
 
                 # save the img features to disk:
@@ -91,8 +103,10 @@ def main():
     train_img_paths = [train_img_dir + file_name for file_name in\
                        os.listdir(train_img_dir) if ".jpg" in file_name]
 
+    # create a list of the paths to all imgs:
     img_paths = val_img_paths + test_img_paths + train_img_paths
 
+    # extract all features:
     extract_img_features_attention(img_paths)
 
 if __name__ == '__main__':
