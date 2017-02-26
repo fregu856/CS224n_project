@@ -25,7 +25,7 @@ class LSTM_Config(object):
         if debug:
             self.max_no_of_epochs = 2
         else:
-            self.max_no_of_epochs = 60
+            self.max_no_of_epochs = 15
         self.max_caption_length = 40
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
@@ -303,6 +303,8 @@ def main():
 
     init = tf.global_variables_initializer()
     saver = tf.train.Saver(max_to_keep=model.config.max_no_of_epochs)
+
+    saver.restore(sess, "models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=2/model-59")
 
     with tf.Session() as sess:
         sess.run(init)
