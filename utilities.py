@@ -1,3 +1,7 @@
+"""
+- DOES: contains a number of functions used in different parts of the project.
+"""
+
 import cPickle
 import numpy as np
 import os
@@ -20,6 +24,13 @@ from json import encoder
 encoder.FLOAT_REPR = lambda o: format(o, '.3f')
 
 def get_batches(model_obj):
+    """
+    - DOES: randomly shuffles all train caption ids and groups them into batches
+    (of size model_obj.config.batch_size) where all captions in any given batch
+    has the same length.
+    """
+
+    # get the batch size:
     batch_size = model_obj.config.batch_size
 
     # group all caption ids in batches:
@@ -28,6 +39,7 @@ def get_batches(model_obj):
         caption_ids = model_obj.caption_length_2_caption_ids[caption_length]
         # randomly shuffle the order of the caption ids:
         random.shuffle(caption_ids)
+
         no_of_captions = model_obj.caption_length_2_no_of_captions[caption_length]
         no_of_full_batches = int(no_of_captions/batch_size)
 
@@ -47,11 +59,18 @@ def get_batches(model_obj):
     return batches_of_caption_ids
 
 def get_batch_ph_data(model_obj, batch_caption_ids):
+    """
+    - DOES: takes in a batch of caption ids, gets all corresponding data
+    (img feature vectors and captions) and returns it in a format ready to be
+    fed to the model (LSTM/GRU) placeholders in a feed_dict.
+    """
+
     # get the dimension parameters:
     batch_size = model_obj.config.batch_size
     img_dim = model_obj.config.img_dim
     caption_length = len(model_obj.train_caption_id_2_caption[batch_caption_ids[0]])
 
+    # initialize the return data:
     captions = np.zeros((batch_size, caption_length))
     # (row i of captions will be the tokenized caption for ex i in the batch)
     img_vectors = np.zeros((batch_size, img_dim))
@@ -62,11 +81,14 @@ def get_batch_ph_data(model_obj, batch_caption_ids):
     # populate the return data:
     for i in range(len(batch_caption_ids)):
         caption_id = batch_caption_ids[i]
+        # get the img id:
         img_id = model_obj.caption_id_2_img_id[caption_id]
+        # get the img's feature vector:
         if img_id in model_obj.train_img_id_2_feature_vector:
             img_vector = model_obj.train_img_id_2_feature_vector[img_id]
         else:
             img_vector = np.zeros((1, img_dim))
+        # get the caption:
         caption = model_obj.train_caption_id_2_caption[caption_id]
 
         captions[i] = caption
@@ -91,6 +113,12 @@ def get_batch_ph_data(model_obj, batch_caption_ids):
     return captions, img_vectors, labels
 
 def get_batch_ph_data_attention(model_obj, batch_caption_ids):
+    """
+    - DOES: takes in a batch of caption ids, gets all corresponding data
+    (img feature arrays and captions) and returns it in a format ready to be
+    fed to the model (LSTM_attention/GRU_attention) placeholders in a feed_dict.
+    """
+
     # get the dimension parameters:
     batch_size = model_obj.config.batch_size
     img_feature_dim = model_obj.config.img_feature_dim
@@ -98,25 +126,27 @@ def get_batch_ph_data_attention(model_obj, batch_caption_ids):
     max_caption_length = model_obj.config.max_caption_length
     caption_length = len(model_obj.train_caption_id_2_caption[batch_caption_ids[0]])
 
+    # initialize the return data:
     captions = np.zeros((batch_size, max_caption_length))
     # (row i of captions will be the tokenized (padded) caption for ex i in the batch)
     img_features = np.zeros((batch_size, no_of_img_feature_vecs, img_feature_dim))
-    # (img_features[i] will be the (64x300) img features for ex i in the batch)
+    # (img_features[i] will be the (64x300) img feature array for ex i in the batch)
     labels = -np.ones((batch_size, max_caption_length))
     # (row i of labels will be the (padded) targets for ex i in the batch)
 
     # populate the return data:
     for i in range(len(batch_caption_ids)):
         caption_id = batch_caption_ids[i]
+        # get the img id:
         img_id = model_obj.caption_id_2_img_id[caption_id]
-
+        # get the img's feature array:
         try:
             img_feature_vectors = cPickle.load(
                         open("coco/data/img_features_attention/%d" % img_id))
         except:
             img_feature_vectors = np.zeros((no_of_img_feature_vecs,
                         img_feature_dim))
-
+        # get the caption:
         caption = model_obj.train_caption_id_2_caption[caption_id]
 
         captions[i, 0:caption_length] = caption
@@ -142,7 +172,12 @@ def get_batch_ph_data_attention(model_obj, batch_caption_ids):
     return captions, img_features, labels
 
 def train_data_iterator(model_obj):
-    # get the batches of caption ids:
+    """
+    - DOES: groups all train caption ids into batches and then yields formated
+    data for each batch to enable iteration. Used by the LSTM/GRU model.
+    """
+
+    # create batches of the train caption ids:
     batches_of_caption_ids = get_batches(model_obj)
 
     for batch_of_caption_ids in batches_of_caption_ids:
@@ -151,25 +186,37 @@ def train_data_iterator(model_obj):
                     batch_of_caption_ids)
 
         # yield the data to enable iteration (will be able to do:
-        # for (captions, img_vector, labels) in train_data_iterator(config):)
+        # for (captions, img_vector, labels) in train_data_iterator(model_obj):)
         yield (captions, img_vectors, labels)
 
 def train_data_iterator_attention(model_obj):
+    """
+    - DOES: groups all train caption ids into batches and then yields formated
+    data for each batch to enable iteration. Used by the
+    LSTM_attention/GRU_attention model.
+    """
+
     # get the batches of caption ids:
     batches_of_caption_ids = get_batches(model_obj)
 
     for batch_of_caption_ids in batches_of_caption_ids:
         # get the batch's data in a format ready to be fed into the placeholders:
-        captions, img_vectors, labels = get_batch_ph_data_attention(model_obj,
+        captions, img_arrays, labels = get_batch_ph_data_attention(model_obj,
                     batch_of_caption_ids)
 
         # yield the data to enable iteration (will be able to do:
-        # for (captions, img_vector, labels) in train_data_iterator(config):)
-        yield (captions, img_vectors, labels)
+        # for (captions, img_vectors, labels) in train_data_iterator(config):)
+        yield (captions, img_arrays, labels)
 
 def detokenize_caption(tokenized_caption, vocabulary):
+    """
+    - DOES: receives a tokenized caption with <SOS> and <EOS> tags and converts
+    it into a string of readable text.
+    """
+
     caption_vector = []
     for word_index in tokenized_caption:
+        # get the corresponding word:
         word = vocabulary[word_index]
         caption_vector.append(word)
 
@@ -183,6 +230,12 @@ def detokenize_caption(tokenized_caption, vocabulary):
     return caption
 
 def evaluate_captions(captions_file):
+    """
+    - DOES: computes the evaluation metrics BLEU-1 - BLEU4, CIDEr,
+    METEOR and ROUGE_L for all captions in captions_file (generated on val or
+    test imgs).
+    """
+
     # define where the ground truth captions for the val (and test) imgs are located:
     true_captions_file = "coco/annotations/captions_val2014.json"
 
@@ -200,6 +253,11 @@ def evaluate_captions(captions_file):
     return results_dict
 
 def plot_performance(model_dir):
+    """
+    - DOES: plots the evaluation metrics and loss vs epoch for the model in
+    model_dir. Also prints the top 5 CIDEr scores and their corresponding epoch.
+    """
+
     # load the saved performance data:
     metrics_per_epoch = cPickle.load(open("%s/eval_results/metrics_per_epoch"\
                 % model_dir))
@@ -261,6 +319,8 @@ def plot_performance(model_dir):
     plt.title("METEOR per epoch")
     plt.savefig("%s/plots/METEOR_per_epoch.png" % model_dir)
 
+    # print the top 5 CIDEr scores and their epoch number (to find the best
+    # set of weights from the training process:)
     for i in range(5):
         max = np.max(np.array(CIDEr_per_epoch))
         arg_max = np.argmax(np.array(CIDEr_per_epoch))
@@ -268,7 +328,14 @@ def plot_performance(model_dir):
         print "%d: epoch %d, CIDEr score: %f" % (i+1, arg_max, max)
 
 
-def compare_captions(model_dir, epoch):
+def compare_captions(model_dir, epoch, img_number):
+    """
+    - DOES: displays the ground truth captions and the generated caption (and the
+    img) of img img_number in the val set for the model in model_dir at epoch.
+    Allows for comparison of the generated and ground truth captions, as well as
+    of the generated captions at different epochs.
+    """
+
     # define where the ground truth captions for the val imgs are located:
     true_captions_file = "coco/annotations/captions_val2014.json"
 
@@ -277,10 +344,10 @@ def compare_captions(model_dir, epoch):
     cocoRes = coco.loadRes("%s/generated_captions/captions_%d.json"\
                 % (model_dir, epoch))
 
-    # get the img id of all imgs for which captions have been generated:
+    # get the img ids of all imgs for which captions have been generated:
     img_ids = cocoRes.getImgIds()
-    # choose one specific img:
-    img_id = img_ids[77]
+    # choose one specific img that you wish to study:
+    img_id = img_ids[img_number]
 
     # print all ground truth captions for the img:
     print "ground truth captions:"
@@ -301,35 +368,18 @@ def compare_captions(model_dir, epoch):
     plt.axis('off')
     plt.show()
 
-def map_img_id_2_file_name():
-    img_id_2_file_name = {}
-
-    train_captions_file = "coco/annotations/captions_train2014.json"
-    train_coco = COCO(train_captions_file)
-
-    val_captions_file = "coco/annotations/captions_val2014.json"
-    val_coco = COCO(val_captions_file)
-
-    val_img_ids = val_coco.getImgIds()
-    val_imgs = val_coco.loadImgs(val_img_ids)
-    for img_obj in val_imgs:
-        file_name = img_obj["file_name"]
-        img_id = img_obj["id"]
-        img_id_2_file_name[img_id] = file_name
-
-    train_img_ids = train_coco.getImgIds()
-    train_imgs = train_coco.loadImgs(train_img_ids)
-    for img_obj in train_imgs:
-        file_name = img_obj["file_name"]
-        img_id = img_obj["id"]
-        img_id_2_file_name[img_id] = file_name
-
-    cPickle.dump(img_id_2_file_name, open("coco/data/img_id_2_file_name", "wb"))
-
 def get_max_caption_length(batch_size):
+    """
+    - DOES: returns the maximum length any caption will have if the train data
+    is grouped into batches of size batch_size (since all captions in a batch
+    has the same size and longer captions are more rare, this maximum length
+    will decrease as the batch size is increased).
+    """
+
     caption_length_2_no_of_captions =\
             cPickle.load(open("coco/data/train_caption_length_2_no_of_captions"))
 
+    # among the caption lengths that at least batch_size captions have, get the max:
     max_caption_length = 0
     for caption_length in caption_length_2_no_of_captions:
         no_of_captions = caption_length_2_no_of_captions[caption_length]
@@ -340,7 +390,7 @@ def get_max_caption_length(batch_size):
 
 def log(log_message):
     """
-    - Adds a log message "log_message" and its time stamp to a log file.
+    - DOES: adds a log message "log_message" and its time stamp to a log file.
     """
 
     # open the log file and make sure that it's closed properly at the end of the
@@ -352,6 +402,9 @@ def log(log_message):
         log_file.write("\n") # (so the next message is put on a new line)
 
 def plot_comparison_curves(model_dirs, metric, params_dict):
+    """
+    - DOES: .
+    """
     param = params_dict["param"]
     param_values = params_dict["param_values"]
 

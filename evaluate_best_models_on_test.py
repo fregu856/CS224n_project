@@ -1,5 +1,13 @@
 """
-- ASSUMES: 
+- ASSUMES: that preprocess_captions.py, extract_img_features.py and
+  extract_img_features_attention.py has already been run. That the weights for the
+  best LSTM/GRU/LSTM_attention/GRU_attention model has been placed in
+  models/**model_type**/best_model with names model.filetype.
+
+- DOES: generates captions for all 5000 imgs in test using the best
+  LSTM/GRU/LSTM_attention/GRU_attention model, evaluates the captions and
+  returns the metric scores (BLEU-1, BLEU-2, BLEU-3, BLEU-4, CIDEr, METEOR and
+  ROUGE_L).
 """
 
 import numpy as np

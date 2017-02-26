@@ -6,6 +6,16 @@
   $ caption_img.py LSTM_attention [img_id] (for using the best LSTM_attention model)
   $ caption_img.py GRU [img_id] (for using te best GRU model)
   $ caption_img.py GRU_attention [img_id] (for using the best GRU_attention model)
+
+- ASSUMES: that preprocess_captions.py and extract_img_features.py has already
+  been run. That the weights for the best LSTM/GRU/LSTM_attention/GRU_attention
+  model has been placed in models/**model_type**/best_model with names
+  model.filetype.
+
+- DOES: generates a caption for the test img with img id img_id if specified,
+  otherwise for a random test img. It also displays the img and its caption.
+  For attention models, it also displays a figure visualizing the img attention
+  at the time of prediciton for each word in the caption.
 """
 
 import cPickle
@@ -27,6 +37,7 @@ from GRU_attention_model import GRU_attention_Config, GRU_attention_Model
 from LSTM_attention_model import LSTM_attention_Config, LSTM_attention_Model
 from extract_img_features_attention import extract_img_features_attention
 
+# check that the script was called in a valid way:
 if len(sys.argv) < 2:
     raise Exception("Must be called in one of the following ways: \n%s\n%s\n%s\n%s" %\
                 ("$ caption_random_test_img.py LSTM [img_id]",
@@ -49,6 +60,7 @@ val_img_id_2_feature_vector =\
 vocabulary = cPickle.load(open("coco/data/vocabulary"))
 
 if len(sys.argv) >= 3:
+    # get the img id if one was specified:
     img_id = int(sys.argv[2])
 else:
     # pick a random test img if no img id was specified:
@@ -119,6 +131,8 @@ plt.axis('off')
 plt.title(img_caption)
 print "img id: %d" % img_id
 
+# for attention models, also display a figure visualizing the img attention for
+# each word in the caption:
 if model_type in ["LSTM_attention", "GRU_attention"]:
     # get a gray scale version of the img:
     I_gray = skimage.color.rgb2gray(I)
@@ -126,7 +140,7 @@ if model_type in ["LSTM_attention", "GRU_attention"]:
     height, width = I_gray.shape
     height_block = int(height/8.)
     width_block = int(width/8.)
-
+    # turn the caption into a vector of the words:
     img_caption_vector = img_caption.split(" ")
     caption_length = len(img_caption_vector)
 
@@ -138,14 +152,14 @@ if model_type in ["LSTM_attention", "GRU_attention"]:
         no_of_rows = int(caption_length/3.)
     else:
         no_of_rows = int(caption_length/3.) + 1
+
     for step, (attention_probs, word) in\
                 enumerate(zip(attention_maps, img_caption_vector)):
         plt.subplot(no_of_rows, 3, step+1)
-        # (attention_probs has shape [1, 64, 1])
+        # flatten the attention_probs from shape [1, 64, 1] to [64, ]:
         attention_probs = attention_probs.flatten()
-        # (attention_probs has shape [64, ])
+        # reshape the attention_probs to shape [8,8]:
         attention_probs = np.reshape(attention_probs, (8,8))
-        # (attention_probs has shape [8, 8])
 
         # convert the 8x8 attention probs map to an img of the same size as the img:
         I_att = np.zeros((height, width))
