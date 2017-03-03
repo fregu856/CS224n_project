@@ -132,8 +132,8 @@ class LSTM_attention_Model(object):
                     cPickle.load(open("coco/data/train_caption_id_2_caption"))
 
         # load data to map from img id to feature array:
-        #self.img_id_2_feature_array =\
-        #        cPickle.load(open("coco/data/img_id_2_feature_array"))
+        self.img_id_2_feature_array =\
+                cPickle.load(open("coco/data/img_id_2_feature_array"))
 
         # load data needed to create batches:
         if self.debug:
@@ -277,21 +277,46 @@ class LSTM_attention_Model(object):
                     # (att_probs has shape [batch_size, 64, 1])
                 else:
                     # compute att_probs with a one hidden layer NN based on
-                    # the previous hidden state:
+                    # the previous hidden state: (CHANGE THIS DESCRIPTION!)
                     previous_output = outputs[timestep-1] # (h_{t-1})
 
                     previous_output_trans = tf.matmul(previous_output, W_a_h)
+                    # (previous_output_trans has shape [batch_size, hidden_dim_att])
 
-                    a = []
-                    for i in range(self.config.no_of_img_feature_vecs):
-                        z_i_linear = tf.matmul(self.imgs_ph[:, i, :], W_a_I) + previous_output_trans + b_a
-                        z_i = tf.nn.tanh(z_i_linear)
-                        # (self.imgs_ph[:, i, :] has shape [batch_size, 300])
-                        # (z_i has shape [batch_size, hidden_dim_att])
+                    ###### slow but intuitive way to compute a:
+                    # a = []
+                    # for i in range(self.config.no_of_img_feature_vecs):
+                    #     z_i_linear = tf.matmul(self.imgs_ph[:, i, :], W_a_I) +\
+                    #                 previous_output_trans + b_a
+                    #     z_i = tf.nn.tanh(z_i_linear)
+                    #     # (self.imgs_ph[:, i, :] has shape [batch_size, 300])
+                    #     # (z_i has shape [batch_size, hidden_dim_att])
+                    #
+                    #     a_i = tf.matmul(z_i, W)
+                    #     # (a_i has shape [batch_size, 1])
+                    #     a.append(a_i)
+                    ####################################
 
-                        a_i = tf.matmul(z_i, W)
-                        # (a_i has shape [batch_size, 1])
-                        a.append(a_i)
+                    ###### fast way to compute a:
+                    x = tf.transpose(self.imgs_ph, [1, 0, 2])
+                    # (imgs_ph has shape [batch_size, 64, 300])
+                    # (x has shape [64, batch_size, 300])
+                    x = tf.reshape(x, [-1, self.config.img_feature_dim])
+                    # (x has shape [batch_size*64, 300])
+
+                    x_trans = tf.matmul(x, W_a_I)
+                    # (x_trans has shape [batch_size*64, hidden_dim_att])
+                    previous_output_trans = tf.tile(previous_output_trans,
+                                [self.config.no_of_img_feature_vecs, 1])
+                    # (previous_output_trans has shape [batch_size*64, hidden_dim_att])
+
+                    y = tf.nn.tanh(x_trans + previous_output_trans + b_a)
+                    # (y has shape [batch_size*64, hidden_dim_att])
+
+                    a = tf.matmul(y, W)
+                    # (a has shape [batch_size*64, 1])
+                    a = tf.split(0, self.config.no_of_img_feature_vecs, a)
+                    ####################################
 
                     # (a is a list of 64 elements, each of which is a
                     # tensor of shape [batch_size, 1])
