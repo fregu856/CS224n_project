@@ -26,9 +26,9 @@ class GRU_attention_Config(object):
     """
 
     def __init__(self, debug=False):
-        self.dropout = 0.5 # (keep probability)
+        self.dropout = 0.75 # (keep probability)
         self.embed_dim = 300 # (dimension of word embeddings)
-        self.hidden_dim = 200 # (dimension of hidden state)
+        self.hidden_dim = 400 # (dimension of hidden state)
         self.batch_size = 256
         self.lr = 0.001
         self.img_feature_dim = 300 # (dim of img feature vectors)
@@ -38,7 +38,7 @@ class GRU_attention_Config(object):
         if debug:
             self.max_no_of_epochs = 2
         else:
-            self.max_no_of_epochs = 60
+            self.max_no_of_epochs = 120
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
                     self.no_of_layers)
@@ -130,6 +130,10 @@ class GRU_attention_Model(object):
         else:
             self.train_caption_id_2_caption =\
                     cPickle.load(open("coco/data/train_caption_id_2_caption"))
+
+        # load data to map from img id to feature array:
+        self.img_id_2_feature_array =\
+                cPickle.load(open("coco/data/img_id_2_feature_array"))
 
         # load data needed to create batches:
         if self.debug:
@@ -495,8 +499,9 @@ class GRU_attention_Model(object):
                 log("generating captions on val: %d" % step)
 
             # get the img's img feature vectors from disk:
-            img_features = cPickle.load(
-                        open("coco/data/img_features_attention/%d" % img_id))
+            #img_features = cPickle.load(
+            #            open("coco/data/img_features_attention/%d" % img_id))
+            img_features = self.img_id_2_feature_array[img_id]
 
             # generate a caption for the img:
             img_caption = self.generate_img_caption(session, img_features, vocabulary)
@@ -571,9 +576,10 @@ def main():
             cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch"\
                         % model.config.model_dir, "w"))
 
-            # save the model weights to disk:
-            saver.save(sess, "%s/weights/model" % model.config.model_dir,
-                        global_step=epoch)
+            if eval_result_dict["CIDEr"] > 0.92:
+                # save the model weights to disk:
+                saver.save(sess, "%s/weights/model" % model.config.model_dir,
+                            global_step=epoch)
 
             print "epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss,
                         eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"])

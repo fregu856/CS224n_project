@@ -128,7 +128,7 @@ with tf.Session() as sess:
 I = io.imread("coco/images/val/%s" % img_file_name)
 plt.imshow(I)
 plt.axis('off')
-plt.title(img_caption)
+plt.title(img_caption, fontsize=15)
 print "img id: %d" % img_id
 
 # for attention models, also display a figure visualizing the img attention for
@@ -174,6 +174,6 @@ if model_type in ["LSTM_attention", "GRU_attention"]:
         # display the blended img:
         plt.imshow(I_blend, cmap="gray")
         plt.axis('off')
-        plt.title(word)
+        plt.title(word, fontsize=15)
 
 plt.show()

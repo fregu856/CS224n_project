@@ -24,18 +24,18 @@ class LSTM_Config(object):
     """
 
     def __init__(self, debug=False):
-        self.dropout = 0.5 # (keep probability)
+        self.dropout = 0.75 # (keep probability)
         self.embed_dim = 300 # (dimension of word embeddings)
-        self.hidden_dim = 200 # (dimension of hidden state)
+        self.hidden_dim = 400 # (dimension of hidden state)
         self.batch_size = 256
         self.lr = 0.001
         self.img_dim = 2048 # (dimension of img feature vectors)
         self.vocab_size = 9855 # (no of words in the vocabulary)
-        self.no_of_layers = 3 # (no of layers in the RNN)
+        self.no_of_layers = 1 # (no of layers in the RNN)
         if debug:
             self.max_no_of_epochs = 2
         else:
-            self.max_no_of_epochs = 100
+            self.max_no_of_epochs = 90
         self.max_caption_length = 40
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
@@ -454,6 +454,8 @@ def main():
         init = tf.global_variables_initializer()
         sess.run(init)
 
+        #saver.restore(sess, "models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=3/weights/model-50")
+
         for epoch in range(config.max_no_of_epochs):
             print "###########################"
             print "######## NEW EPOCH ########"
@@ -486,9 +488,10 @@ def main():
             cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch"\
                         % model.config.model_dir, "w"))
 
-            # save the model weights to disk:
-            saver.save(sess, "%s/weights/model" % model.config.model_dir,
-                        global_step=epoch)
+            if eval_result_dict["CIDEr"] > 0.92:
+                # save the model weights to disk:
+                saver.save(sess, "%s/weights/model" % model.config.model_dir,
+                            global_step=epoch)
 
             print "epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss,
                         eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"])

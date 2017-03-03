@@ -1,6 +1,7 @@
 import cPickle
 import os
 import numpy as np
+import shutil
 
 #captions_dir = "coco/annotations/"
 #ids_dir = "coco/features/"
@@ -162,5 +163,69 @@ import numpy as np
 # plot_comparison_curves(["models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1", "models/LSTMs_attention/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1"], "loss", {"param": "batch size", "param_values": [128, 256]})
 # plot_comparison_curves(["models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1", "models/LSTMs_attention/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1"], "CIDEr", {"param": "batch size", "param_values": [128, 256]})
 
-from utilities import plot_performance
-plot_performance("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=1")
+# from utilities import plot_performance
+# loss_per_epoch1 = cPickle.load(open("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=3/losses/loss_per_epoch1"))
+# loss_per_epoch2 = cPickle.load(open("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=3/losses/loss_per_epoch2"))
+#
+# loss_per_epoch = loss_per_epoch1 + loss_per_epoch2
+#
+# cPickle.dump(loss_per_epoch, open("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=3/losses/loss_per_epoch", "wb"))
+#
+# metrics_per_epoch1 = cPickle.load(open("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=3/eval_results/metrics_per_epoch1"))
+# metrics_per_epoch2 = cPickle.load(open("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=3/eval_results/metrics_per_epoch2"))
+#
+# metrics_per_epoch = metrics_per_epoch1 + metrics_per_epoch2
+#
+# cPickle.dump(metrics_per_epoch, open("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=3/eval_results/metrics_per_epoch", "wb"))
+#
+# plot_performance("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=3")
+
+from utilities import plot_comparison_curves
+
+plot_comparison_curves(["models/LSTMs/model_keep=0.75_batch=128_hidden_dim=400_embed_dim=300_layers=1",
+        "models/LSTMs/model_keep=0.75_batch=256_hidden_dim=400_embed_dim=300_layers=1",
+        "models/LSTMs/model_keep=0.75_batch=512_hidden_dim=400_embed_dim=300_layers=1"],
+        "Bleu_4", {"param": "batch size", "param_values": [128, 256, 512]})
+
+# with open("log.txt") as file:
+#     loss_per_epoch = []
+#     metrics_per_epoch = []
+#
+#     for line in file:
+#         # remove the new line char at the end:
+#         line = line.strip()
+#
+#         # seperate the word from the word vector:
+#         line_elements = line.split(" ")
+#         if "CIDEr:" in line_elements:
+#             loss = float(line_elements[4])
+#             Bleu_4 = float(line_elements[7])
+#             CIDEr = float(line_elements[12])
+#
+#             loss_per_epoch.append(loss)
+#
+#             epoch_metrics = {}
+#             epoch_metrics["CIDEr"] = CIDEr
+#             epoch_metrics["Bleu_4"] = Bleu_4
+#             epoch_metrics["ROUGE_L"] = 0
+#             epoch_metrics["METEOR"] = 0
+#
+#             metrics_per_epoch.append(epoch_metrics)
+#
+#     cPickle.dump(loss_per_epoch, open("loss_per_epoch", "wb"))
+#     cPickle.dump(metrics_per_epoch, open("metrics_per_epoch", "wb"))
+
+import cPickle
+import os
+import numpy as np
+import shutil
+
+val_img_dir = "/mnt/train2014/"
+# create a list of the paths to all val imgs:
+val_img_paths = [val_img_dir + file_name for file_name in\
+                 os.listdir(val_img_dir) if ".jpg" in file_name]
+
+for img_path in val_img_paths:
+    img_name = img_path.split("/")[3]
+
+    shutil.move(img_path, "/mnt/imgs/%s" % img_name)

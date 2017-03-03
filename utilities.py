@@ -141,9 +141,11 @@ def get_batch_ph_data_attention(model_obj, batch_caption_ids):
         img_id = model_obj.caption_id_2_img_id[caption_id]
         # get the img's feature array:
         try:
-            img_feature_vectors = cPickle.load(
-                        open("coco/data/img_features_attention/%d" % img_id))
+            #img_feature_vectors = cPickle.load(
+            #            open("coco/data/img_features_attention/%d" % img_id))
+            img_feature_vectors = model_obj.img_id_2_feature_array[img_id]
         except:
+            print "zero-vector!"
             img_feature_vectors = np.zeros((no_of_img_feature_vecs,
                         img_feature_dim))
         # get the caption:
@@ -327,6 +329,16 @@ def plot_performance(model_dir):
         CIDEr_per_epoch[arg_max] = -1
         print "%d: epoch %d, CIDEr score: %f" % (i+1, arg_max, max)
 
+    print "***********"
+
+    # print the top 5 BLEU-4 scores and their epoch number (to find the best
+    # set of weights from the training process:)
+    for i in range(5):
+        max = np.max(np.array(Bleu_4_per_epoch))
+        arg_max = np.argmax(np.array(Bleu_4_per_epoch))
+        Bleu_4_per_epoch[arg_max] = -1
+        print "%d: epoch %d, BLEU-4 score: %f" % (i+1, arg_max, max)
+
 
 def compare_captions(model_dir, epoch, img_number):
     """
@@ -411,7 +423,7 @@ def plot_comparison_curves(model_dirs, metric, params_dict):
     for model_dir, param_value in zip(model_dirs, param_values):
         if metric == "loss":
             loss_per_epoch = cPickle.load(open("%s/losses/loss_per_epoch" % model_dir))
-            plt.plot(loss_per_epoch, label="%s: %d" %(param, param_value))
+            plt.plot(loss_per_epoch, label="%s: %.2f" %(param, param_value))
 
         elif metric in ["CIDEr", "Bleu_4", "ROUGE_L", "METEOR"]:
             metrics_per_epoch = cPickle.load(open("%s/eval_results/metrics_per_epoch"\
@@ -421,14 +433,14 @@ def plot_comparison_curves(model_dirs, metric, params_dict):
             metric_per_epoch = []
             for epoch_metrics in metrics_per_epoch:
                 metric_per_epoch.append(epoch_metrics[metric])
-            plt.plot(metric_per_epoch, label="%s: %d" %(param, param_value))
+            plt.plot(metric_per_epoch, label="%s: %.2f" %(param, param_value))
 
     plt.ylabel(metric, fontsize=15)
     plt.xlabel("epoch", fontsize=15)
     plt.title("", fontsize=15)
-    # put the legend in the upper right corner of the figure:
-    plt.legend(bbox_to_anchor=(1, 1), bbox_transform=plt.gcf().transFigure, fontsize=15)
-    plt.show()
+    plt.legend(fontsize=15)
+    #plt.ylim([0.85, 0.95])
+    plt.savefig("comparison_plot")
 
 def main():
     test = 1

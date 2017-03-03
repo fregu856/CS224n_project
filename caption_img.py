@@ -111,7 +111,7 @@ I = io.imread("img_to_caption/img.jpg")
 plt.figure(1)
 plt.imshow(I)
 plt.axis('off')
-plt.title(img_caption)
+plt.title(img_caption, fontsize=15)
 
 # for attention models, also display a figure visualizing the img attention for
 # each word in the caption:
@@ -156,6 +156,6 @@ if model_type in ["LSTM_attention", "GRU_attention"]:
         # display the blended img:
         plt.imshow(I_blend, cmap="gray")
         plt.axis('off')
-        plt.title(word)
+        plt.title(word, fontsize=15)
 
 plt.show()

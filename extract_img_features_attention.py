@@ -62,6 +62,7 @@ def extract_img_features_attention(img_paths, demo=False):
                 # get the img features (np array of shape (64, 300)):
                 img_features = sess.run(img_features_tensor,
                         feed_dict={"DecodeJpeg/contents:0": img_data})
+                #img_features = np.float16(img_features)
             except:
                 print "JPEG error for:"
                 print img_path
