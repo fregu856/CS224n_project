@@ -423,7 +423,7 @@ def plot_comparison_curves(model_dirs, metric, params_dict):
     for model_dir, param_value in zip(model_dirs, param_values):
         if metric == "loss":
             loss_per_epoch = cPickle.load(open("%s/losses/loss_per_epoch" % model_dir))
-            plt.plot(loss_per_epoch, label="%s: %.2f" %(param, param_value))
+            plt.plot(loss_per_epoch, label="%s: %s" %(param, param_value))
 
         elif metric in ["CIDEr", "Bleu_4", "ROUGE_L", "METEOR"]:
             metrics_per_epoch = cPickle.load(open("%s/eval_results/metrics_per_epoch"\
@@ -433,7 +433,7 @@ def plot_comparison_curves(model_dirs, metric, params_dict):
             metric_per_epoch = []
             for epoch_metrics in metrics_per_epoch:
                 metric_per_epoch.append(epoch_metrics[metric])
-            plt.plot(metric_per_epoch, label="%s: %.2f" %(param, param_value))
+            plt.plot(metric_per_epoch, label="%s: %s" %(param, param_value))
 
     plt.ylabel(metric, fontsize=15)
     plt.xlabel("epoch", fontsize=15)

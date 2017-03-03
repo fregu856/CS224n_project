@@ -35,16 +35,16 @@ class LSTM_attention_Config(object):
         self.no_of_img_feature_vecs = 64 # (no of feature vectors per img)
         self.vocab_size = 9855 # (no of words in the vocabulary)
         self.no_of_layers = 1 # (no of layers in the RNN)
+        self.hidden_dim_att = 300 # (dim of hidden state in the attention network)
         if debug:
             self.max_no_of_epochs = 2
         else:
             self.max_no_of_epochs = 120
-        self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
+        self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d_hidden_dim_att=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,
-                    self.no_of_layers)
+                    self.no_of_layers, self.hidden_dim_att)
         self.model_dir = "models/LSTMs_attention/%s" % self.model_name
         self.max_caption_length = get_max_caption_length(self.batch_size)
-        self.hidden_dim_att = 200 # (dim of hidden state in the attention network)
 
 class LSTM_attention_Model(object):
     """
@@ -132,8 +132,8 @@ class LSTM_attention_Model(object):
                     cPickle.load(open("coco/data/train_caption_id_2_caption"))
 
         # load data to map from img id to feature array:
-        self.img_id_2_feature_array =\
-                cPickle.load(open("coco/data/img_id_2_feature_array"))
+        #self.img_id_2_feature_array =\
+        #        cPickle.load(open("coco/data/img_id_2_feature_array"))
 
         # load data needed to create batches:
         if self.debug:
@@ -240,16 +240,19 @@ class LSTM_attention_Model(object):
 
         with tf.variable_scope("LSTM_attention"):
             # initialize the attention NN paramaters:
-            W_att = tf.get_variable("W_att",
+            W_a_h = tf.get_variable("W_a_h",
                         shape=[self.config.hidden_dim, self.config.hidden_dim_att],
                         initializer=tf.contrib.layers.xavier_initializer())
-            U_att = tf.get_variable("U_att",
-                        shape=[self.config.hidden_dim_att, self.config.no_of_img_feature_vecs],
+            W_a_I = tf.get_variable("W_a_I",
+                        shape=[self.config.img_feature_dim, self.config.hidden_dim_att],
                         initializer=tf.contrib.layers.xavier_initializer())
-            b1_att = tf.get_variable("b1_att",
+            W = tf.get_variable("W",
+                        shape=[self.config.hidden_dim_att, 1],
+                        initializer=tf.contrib.layers.xavier_initializer())
+            b_a = tf.get_variable("b_a",
                         shape=[1, self.config.hidden_dim_att],
                         initializer=tf.constant_initializer(0))
-            b2_att = tf.get_variable("b2_att",
+            b_alpha = tf.get_variable("b_alpha",
                         shape=[1, self.config.no_of_img_feature_vecs],
                         initializer=tf.constant_initializer(0))
 
@@ -276,12 +279,29 @@ class LSTM_attention_Model(object):
                     # compute att_probs with a one hidden layer NN based on
                     # the previous hidden state:
                     previous_output = outputs[timestep-1] # (h_{t-1})
-                    h_att_linear = tf.matmul(previous_output, W_att) + b1_att
-                    h_att = tf.nn.relu(h_att_linear)
-                    # (h_att has shape [batch_size, hidden_dim_att])
+
+                    previous_output_trans = tf.matmul(previous_output, W_a_h)
+
+                    a = []
+                    for i in range(self.config.no_of_img_feature_vecs):
+                        z_i_linear = tf.matmul(self.imgs_ph[:, i, :], W_a_I) + previous_output_trans + b_a
+                        z_i = tf.nn.tanh(z_i_linear)
+                        # (self.imgs_ph[:, i, :] has shape [batch_size, 300])
+                        # (z_i has shape [batch_size, hidden_dim_att])
+
+                        a_i = tf.matmul(z_i, W)
+                        # (a_i has shape [batch_size, 1])
+                        a.append(a_i)
+
+                    # (a is a list of 64 elements, each of which is a
+                    # tensor of shape [batch_size, 1])
+                    # reshape a into shape [batch_size, 64, 1]:
+                    a = tf.pack(a, axis=1)
+                    # reshape a into shape [batch_size, 64]:
+                    a = tf.reshape(a, [tf.shape(self.captions_input)[0], self.config.no_of_img_feature_vecs])
 
                     # turn into probabilities using a softmax:
-                    att_probs_linear = tf.matmul(h_att, U_att) + b2_att
+                    att_probs_linear = a + b_alpha
                     att_probs = tf.nn.softmax(att_probs_linear)
                     # (att_probs has shape [batch_size, 64])
 
@@ -576,7 +596,7 @@ def main():
             cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch"\
                         % model.config.model_dir, "w"))
 
-            if eval_result_dict["CIDEr"] > 0.92:
+            if eval_result_dict["CIDEr"] > 0.80:
                 # save the model weights to disk:
                 saver.save(sess, "%s/weights/model" % model.config.model_dir,
                             global_step=epoch)
