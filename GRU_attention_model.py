@@ -618,7 +618,7 @@ def main():
             cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch"\
                         % model.config.model_dir, "w"))
 
-            if eval_result_dict["CIDEr"] > 0.92:
+            if eval_result_dict["CIDEr"] > 0.85:
                 # save the model weights to disk:
                 saver.save(sess, "%s/weights/model" % model.config.model_dir,
                             global_step=epoch)

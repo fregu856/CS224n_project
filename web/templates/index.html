@@ -1,0 +1,103 @@
+<!DOCTYPE>
+<hmtl>
+<head>
+    <title>Neural Image Captioning</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width-device-width, initial-scale=1" />
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="/static/css/keen-dashboards.css" rel="stylesheet" />
+</head>
+
+<header>
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+
+                <a class="navbar-brand" href="/">
+                    <span class="glyphicon glyphicon-chevron-right"></span>
+                </a>
+
+                <a class="navbar-brand" href="/">Neural Image Captioning</a>
+            </div>
+
+        </div>
+    </div>
+</header>
+
+<br />
+<br />
+
+<body style="background: #f2f2f2">
+
+  <div class="container-fluid" style="min-height:100%; max-width: 1500px">
+      <!-- display all (if any) flashed messages: -->
+      {% with messages = get_flashed_messages() %}
+          {% if messages %}
+              {% for message in messages %}
+                  <div class="alert alert-danger">
+                      <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                      {{message}}
+                  </div>
+              {% endfor %}
+         {% endif %}
+      {% endwith %}
+
+      </br>
+
+      <!-- panel (the white box with all content): -->
+      <div class="panel panel-default">
+          <!-- panel header (the small bar on the top of the panel): -->
+          <div class="panel-heading" style="background-color: #ffffff">
+          </div>
+
+          <div style="text-align: center">
+
+            <!-- panel content: -->
+            <!-- form which will post input data to "/search_result/": -->
+            <form name="search_form" action="/" method="post">
+
+                <div class="row" style="margin-left:15px; margin-top:14px; margin-right:15px">
+
+                    <input class="btn btn-default" type="submit" value="LSTM" style="margin-bottom: 10px; margin-top: 10px" />
+
+                    </br>
+
+                    <img id="captioned_img" src="{{ url_for('static', filename='images/captioned_img.jpg') }}" />
+
+                </div>
+            </form>
+
+          </div>
+
+          <!-- panel footer (the small bar on the bottom of the panel): -->
+          <div class="panel-footer" style="background-color: #ffffff">
+          </div>
+      </div>
+  </div>
+
+    <!-- external scripts: (the order DOES seem to matter) -->
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/canvasjs.min.js') }}"></script>
+
+    <script type="text/javascript" charset="utf-8">
+
+      function img_updater()
+      {
+          document.getElementById("captioned_img").src = "static/images/captioned_img.jpg?" + new Date().getTime(); // Break the cache (so it actually gets the updated image, and don't use the one stored in cache)
+      }
+
+      window.onload = img_updater;
+
+    </script>
+
+</body>
+
+</html>

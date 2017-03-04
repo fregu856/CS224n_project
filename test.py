@@ -182,10 +182,9 @@ import shutil
 
 from utilities import plot_comparison_curves
 
-plot_comparison_curves(["models/LSTMs/model_keep=0.75_batch=128_hidden_dim=400_embed_dim=300_layers=1",
-        "models/LSTMs/model_keep=0.75_batch=256_hidden_dim=400_embed_dim=300_layers=1",
-        "models/LSTMs/model_keep=0.75_batch=512_hidden_dim=400_embed_dim=300_layers=1"],
-        "Bleu_4", {"param": "batch size", "param_values": [128, 256, 512]})
+plot_comparison_curves(["models/LSTMs/model_keep=0.75_batch=256_hidden_dim=400_embed_dim=300_layers=1",
+        "models/LSTMs_attention/model_keep=0.75_batch=256_hidden_dim=400_embed_dim=300_layers=1_hidden_dim_att=200"],
+        "CIDEr", {"param": "Attention", "param_values": ["No", "Yes"]})
 
 # with open("log.txt") as file:
 #     loss_per_epoch = []
@@ -215,17 +214,17 @@ plot_comparison_curves(["models/LSTMs/model_keep=0.75_batch=128_hidden_dim=400_e
 #     cPickle.dump(loss_per_epoch, open("loss_per_epoch", "wb"))
 #     cPickle.dump(metrics_per_epoch, open("metrics_per_epoch", "wb"))
 
-import cPickle
-import os
-import numpy as np
-import shutil
-
-val_img_dir = "/mnt/train2014/"
-# create a list of the paths to all val imgs:
-val_img_paths = [val_img_dir + file_name for file_name in\
-                 os.listdir(val_img_dir) if ".jpg" in file_name]
-
-for img_path in val_img_paths:
-    img_name = img_path.split("/")[3]
-
-    shutil.move(img_path, "/mnt/imgs/%s" % img_name)
+# import cPickle
+# import os
+# import numpy as np
+# import shutil
+#
+# val_img_dir = "/mnt/train2014/"
+# # create a list of the paths to all val imgs:
+# val_img_paths = [val_img_dir + file_name for file_name in\
+#                  os.listdir(val_img_dir) if ".jpg" in file_name]
+#
+# for img_path in val_img_paths:
+#     img_name = img_path.split("/")[3]
+#
+#     shutil.move(img_path, "/mnt/imgs/%s" % img_name)

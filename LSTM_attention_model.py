@@ -297,7 +297,7 @@ class LSTM_attention_Model(object):
                     #     a.append(a_i)
                     ####################################
 
-                    ###### fast way to compute a:
+                    ###### faster way to compute a:
                     x = tf.transpose(self.imgs_ph, [1, 0, 2])
                     # (imgs_ph has shape [batch_size, 64, 300])
                     # (x has shape [64, batch_size, 300])
@@ -621,7 +621,7 @@ def main():
             cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch"\
                         % model.config.model_dir, "w"))
 
-            if eval_result_dict["CIDEr"] > 0.80:
+            if eval_result_dict["CIDEr"] > 0.85:
                 # save the model weights to disk:
                 saver.save(sess, "%s/weights/model" % model.config.model_dir,
                             global_step=epoch)
