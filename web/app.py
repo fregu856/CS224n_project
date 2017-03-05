@@ -49,14 +49,14 @@ def index():
                 plt.imshow(I)
                 plt.axis('off')
                 plt.title(img_caption, fontsize=15)
-                plt.savefig("static/images/captioned_img_no_att.jpg")
+                plt.savefig("static/images/captioned_img_no_att.jpg", bbox_inches="tight")
 
             elif model_type == "attention":
                 # get the img's features:
-                extract_img_features_attention(["/home/fregu856/CS224n/project/CS224n_project/coco/images/val/%s" % img_file_name], demo=True)
-                img_features = cPickle.load(
-                            open("/home/fregu856/CS224n/project/CS224n_project/coco/data/img_features_attention/%d" % -1))
-                #img_features = val_img_id_2_feature_array[img_id]
+                #extract_img_features_attention(["/home/fregu856/CS224n/project/CS224n_project/coco/images/val/%s" % img_file_name], demo=True)
+                #img_features = cPickle.load(
+                #            open("/home/fregu856/CS224n/project/CS224n_project/coco/data/img_features_attention/%d" % -1))
+                img_features = val_img_id_2_feature_array[img_id]
 
                 # caption the img (using the best model):
                 img_caption, attention_maps = model_att.generate_img_caption(sess, img_features, vocabulary)
@@ -67,7 +67,7 @@ def index():
                 plt.imshow(I)
                 plt.axis('off')
                 plt.title(img_caption, fontsize=15)
-                plt.savefig("static/images/captioned_img_att.jpg")
+                plt.savefig("static/images/captioned_img_att.jpg", bbox_inches="tight")
 
                 # get a gray scale version of the img:
                 I_gray = skimage.color.rgb2gray(I)
@@ -79,7 +79,7 @@ def index():
                 img_caption_vector = img_caption.split(" ")
                 caption_length = len(img_caption_vector)
 
-                plt.figure()
+                plt.figure(figsize=(8, 8))
 
                 # create a plot with an img for each word in the generated caption,
                 # visualizing the img attention when the word was generated:
@@ -111,7 +111,7 @@ def index():
                     plt.axis('off')
                     plt.title(word, fontsize=15)
 
-                plt.savefig("static/images/attention_map.jpg")
+                plt.savefig("static/images/attention_map.jpg", bbox_inches="tight")
 
             elif model_type == "both":
                 # get the img's features:
@@ -126,13 +126,13 @@ def index():
                 plt.imshow(I)
                 plt.axis('off')
                 plt.title(img_caption, fontsize=15)
-                plt.savefig("static/images/captioned_img_no_att.jpg")
+                plt.savefig("static/images/captioned_img_no_att.jpg", bbox_inches="tight")
 
                 # get the img's features:
-                extract_img_features_attention(["/home/fregu856/CS224n/project/CS224n_project/coco/images/val/%s" % img_file_name], demo=True)
-                img_features = cPickle.load(
-                            open("/home/fregu856/CS224n/project/CS224n_project/coco/data/img_features_attention/%d" % -1))
-                #img_features = val_img_id_2_feature_array[img_id]
+                #extract_img_features_attention(["/home/fregu856/CS224n/project/CS224n_project/coco/images/val/%s" % img_file_name], demo=True)
+                #img_features = cPickle.load(
+                #            open("/home/fregu856/CS224n/project/CS224n_project/coco/data/img_features_attention/%d" % -1))
+                img_features = val_img_id_2_feature_array[img_id]
 
                 # caption the img (using the best model):
                 img_caption, attention_maps = model_att.generate_img_caption(sess, img_features, vocabulary)
@@ -142,7 +142,7 @@ def index():
                 plt.imshow(I)
                 plt.axis('off')
                 plt.title(img_caption, fontsize=15)
-                plt.savefig("static/images/captioned_img_att.jpg")
+                plt.savefig("static/images/captioned_img_att.jpg", bbox_inches="tight")
 
                 # get a gray scale version of the img:
                 I_gray = skimage.color.rgb2gray(I)
@@ -154,7 +154,7 @@ def index():
                 img_caption_vector = img_caption.split(" ")
                 caption_length = len(img_caption_vector)
 
-                plt.figure()
+                plt.figure(figsize=(8, 8))
 
                 # create a plot with an img for each word in the generated caption,
                 # visualizing the img attention when the word was generated:
@@ -186,7 +186,7 @@ def index():
                     plt.axis('off')
                     plt.title(word, fontsize=15)
 
-                plt.savefig("static/images/attention_map.jpg")
+                plt.savefig("static/images/attention_map.jpg", bbox_inches="tight")
 
             return render_template("index.html", model_type = model_type)
         else:
@@ -201,8 +201,8 @@ if __name__ == '__main__':
     val_img_id_2_feature_vector =\
                 cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/val_img_id_2_feature_vector"))
     vocabulary = cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/vocabulary"))
-    #val_img_id_2_feature_array =\
-    #            cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/val_img_id_2_feature_array"))
+    val_img_id_2_feature_array =\
+                cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/val_img_id_2_feature_array"))
     true_captions_file = "/home/fregu856/CS224n/project/CS224n_project/coco/annotations/captions_val2014.json"
     coco = COCO(true_captions_file)
 

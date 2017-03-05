@@ -1,119 +1,173 @@
-<!DOCTYPE>
-<hmtl>
+<!DOCTYPE html>
+<html lang="en">
+
 <head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
     <title>Neural Image Captioning</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width-device-width, initial-scale=1" />
-    <link href="/static/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="/static/css/keen-dashboards.css" rel="stylesheet" />
+
+    <!-- Bootstrap Core CSS -->
+    <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+    <link href="/static/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css">
+    <link href='https://fonts.googleapis.com/css?family=Kaushan+Script' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Roboto+Slab:400,100,300,700' rel='stylesheet' type='text/css'>
+
+    <!-- Theme CSS -->
+    <link href="/static/css/agency.min.css" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js" integrity="sha384-0s5Pv64cNZJieYFkXYOTId2HMA2Lfb6q2nAcx2n0RTLUnCAoTTsS0nKEO27XyKcY" crossorigin="anonymous"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js" integrity="sha384-ZoaMbDF+4LeFxg6WdScQ9nnR1QC2MIRxA1O9KWEXQwns1G8UNyIEZIQidzb0T1fo" crossorigin="anonymous"></script>
+    <![endif]-->
+
 </head>
+
+<body id="page-top" class="index">
 
 <header>
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-        <div class="container-fluid">
+        <div class="container-fluid" style="margin-top:10px; margin-bottom: 10px">
             <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-
                 <a class="navbar-brand" href="/">
                     <span class="glyphicon glyphicon-chevron-right"></span>
                 </a>
-
-                <a class="navbar-brand" href="/">Neural Image Captioning</a>
             </div>
-
         </div>
     </div>
 </header>
 
-<br />
-<br />
+    <!-- demo section -->
+    <section id="demo">
+        <div class="container">
+          <div class="row">
+              <div class="col-lg-12 text-center">
+                  <h2 class="section-heading">Neural Image Captioning</h2>
+                  <h3 class="section-subheading text-muted">Caption a random image from the test set.</h3>
+              </div>
+          </div>
 
-<body style="background: #f2f2f2">
-
-  <div class="container-fluid" style="min-height:100%; max-width: 1500px">
-      <!-- display all (if any) flashed messages: -->
-      {% with messages = get_flashed_messages() %}
-          {% if messages %}
-              {% for message in messages %}
-                  <div class="alert alert-danger">
-                      <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                      {{message}}
+          <form name="search_form" action="/" method="post">
+              <div class="row text-center">
+                  <div class="col-md-4">
+                      <button class="page-scroll btn btn-xl" style="background-color: rgb(40,40,40); border-color: black" type="submit" name="button" value="no attention" style="margin-bottom: 10px; margin-top: 10px">Best Model</button>
                   </div>
-              {% endfor %}
-         {% endif %}
-      {% endwith %}
+                  <div class="col-md-4">
+                      <button class="page-scroll btn btn-xl" style="hover: background-color: black; background-color: rgb(40,40,40); border-color: black" type="submit" name="button" value="attention" style="margin-bottom: 10px; margin-top: 10px">Best Attention Model</button>
+                  </div>
+                  <div class="col-md-4">
+                      <button class="page-scroll btn btn-xl" style="background-color: rgb(40,40,40); border-color: black" type="submit" name="button" value="both" style="margin-bottom: 10px; margin-top: 10px">Compare Models</button>
+                  </div>
+              </div>
+          </form>
 
-      </br>
+          </br>
+          </br>
 
-      <!-- panel (the white box with all content): -->
-      <div class="panel panel-default">
-          <!-- panel header (the small bar on the top of the panel): -->
-          <div class="panel-heading" style="background-color: #ffffff">
+          <div class="row text-center">
+              <div class="col-md-12">
+                  {% if model_type == "no attention" %}
+
+                  <img id="captioned_img_no_att" src="{{ url_for('static', filename='images/captioned_img_no_att.jpg') }}" />
+
+                  {% endif %}
+
+                  {% if model_type == "attention" %}
+
+                  <img id="captioned_img_att" src="{{ url_for('static', filename='images/captioned_img_att.jpg') }}" />
+
+                  </br>
+
+                  <img id="attention_map" src="{{ url_for('static', filename='images/attention_map.jpg') }}" />
+
+                  {% endif %}
+
+                  {% if model_type == "both" %}
+
+                  <img id="captioned_img_no_att" src="{{ url_for('static', filename='images/captioned_img_no_att.jpg') }}" />
+
+                  </br>
+
+                  <img id="captioned_img_att" src="{{ url_for('static', filename='images/captioned_img_att.jpg') }}" />
+
+                  </br>
+
+                  <img id="attention_map" src="{{ url_for('static', filename='images/attention_map.jpg') }}" />
+
+                  {% endif %}
+              </div>
           </div>
 
-          <div style="text-align: center">
+        </div>
+    </section>
 
-            <!-- panel content: -->
-            <!-- form which will post input data to "/search_result/": -->
-            <form name="search_form" action="/" method="post">
-
-                <div class="row" style="margin-left:15px; margin-top:14px; margin-right:15px">
-
-                    <button class="btn btn-default" type="submit" name="button" value="no attention" style="margin-bottom: 10px; margin-top: 10px">No Attention</button>
-
-                    <button class="btn btn-default" type="submit" name="button" value="attention" style="margin-bottom: 10px; margin-top: 10px">Attention</button>
-
-                    <button class="btn btn-default" type="submit" name="button" value="both" style="margin-bottom: 10px; margin-top: 10px">Both</button>
-
-                    </br>
-
-                    {% if model_type == "no attention" %}
-
-                    <img id="captioned_img_no_att" src="{{ url_for('static', filename='images/captioned_img_no_att.jpg') }}" />
-
-                    {% endif %}
-
-                    {% if model_type == "attention" %}
-
-                    <img id="captioned_img_att" src="{{ url_for('static', filename='images/captioned_img_att.jpg') }}" />
-
-                    <img id="attention_map" src="{{ url_for('static', filename='images/attention_map.jpg') }}" />
-
-                    {% endif %}
-
-                    {% if model_type == "both" %}
-
-                    <img id="captioned_img_no_att" src="{{ url_for('static', filename='images/captioned_img_no_att.jpg') }}" />
-
-                    </br>
-
-                    <img id="captioned_img_att" src="{{ url_for('static', filename='images/captioned_img_att.jpg') }}" />
-
-                    <img id="attention_map" src="{{ url_for('static', filename='images/attention_map.jpg') }}" />
-
-                    {% endif %}
-
+    <!-- about me section-->
+    <section id="about_me" class="bg-light-gray">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h2 class="section-heading">About me</h2>
                 </div>
-            </form>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="team-member">
+                        <img src="/static/img/profile_pic.jpg" class="img-responsive img-circle" alt="">
+                        <h4>Fredrik Gustafsson</h4>
+                        <p class="text-muted">Graduate Exchange Student at Stanford University</p>
+                        <ul class="list-inline social-buttons">
+                            <li><a href="https://github.com/fregu856" style="background-color: rgb(40,40,40)"><i class="fa fa-github"></i></a>
+                            </li>
+                            <li><a href="https://www.linkedin.com/in/fregu856/" style="background-color: rgb(40,40,40)"><i class="fa fa-linkedin"></i></a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 text-center">
+                    <p class="large text-muted">- I am an engineering student with a particular interest in mathematics, mobile robotics and teaching, specializing within the fields of control theory and signal processing. I aim to contribute to the development of fully autonomous vehicles and hope to experience the day when we can safely say: ”Do you remember when people used to get killed in traffic?”.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-          </div>
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-12">
+                    <span class="copyright">Copyright &copy; fregu856.com 2017</span>
+                </div>
+            </div>
+        </div>
+    </footer>
 
-          <!-- panel footer (the small bar on the bottom of the panel): -->
-          <div class="panel-footer" style="background-color: #ffffff">
-          </div>
-      </div>
-  </div>
 
-    <!-- external scripts: (the order DOES seem to matter) -->
-    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/canvasjs.min.js') }}"></script>
+    <!-- jQuery -->
+    <script src="/static/vendor/jquery/jquery.min.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="/static/vendor/bootstrap/js/bootstrap.min.js"></script>
+
+    <!-- Plugin JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.3/jquery.easing.min.js" integrity="sha384-mE6eXfrb8jxl0rzJDBRanYqgBxtJ6Unn4/1F7q4xRRyIw7Vdg9jP4ycT7x1iVsgb" crossorigin="anonymous"></script>
+
+    <!-- Contact Form JavaScript -->
+    <script src="/static/js/jqBootstrapValidation.js"></script>
+    <script src="/static/js/contact_me.js"></script>
+
+    <!-- Theme JavaScript -->
+    <script src="/static/js/agency.min.js"></script>
 
     {% if model_type == "no attention" %}
 
