@@ -224,7 +224,7 @@ if __name__ == '__main__':
     # attention model:
     att_vars = []
     no_att_vars = []
-    all_vars = tf.all_variables()
+    all_vars = tf.global_variables()
     for var in all_vars:
         try:
             # try to restore the variable using the no attention model:
@@ -250,3 +250,6 @@ if __name__ == '__main__':
 
     # launch the webpage:
     app.run()
+
+    # close the tensorflow sesson before closing the webpage:
+    sess.close()
