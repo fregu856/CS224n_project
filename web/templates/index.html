@@ -64,11 +64,39 @@
 
                 <div class="row" style="margin-left:15px; margin-top:14px; margin-right:15px">
 
-                    <input class="btn btn-default" type="submit" value="LSTM" style="margin-bottom: 10px; margin-top: 10px" />
+                    <button class="btn btn-default" type="submit" name="button" value="no attention" style="margin-bottom: 10px; margin-top: 10px">No Attention</button>
+
+                    <button class="btn btn-default" type="submit" name="button" value="attention" style="margin-bottom: 10px; margin-top: 10px">Attention</button>
+
+                    <button class="btn btn-default" type="submit" name="button" value="both" style="margin-bottom: 10px; margin-top: 10px">Both</button>
 
                     </br>
 
-                    <img id="captioned_img" src="{{ url_for('static', filename='images/captioned_img.jpg') }}" />
+                    {% if model_type == "no attention" %}
+
+                    <img id="captioned_img_no_att" src="{{ url_for('static', filename='images/captioned_img_no_att.jpg') }}" />
+
+                    {% endif %}
+
+                    {% if model_type == "attention" %}
+
+                    <img id="captioned_img_att" src="{{ url_for('static', filename='images/captioned_img_att.jpg') }}" />
+
+                    <img id="attention_map" src="{{ url_for('static', filename='images/attention_map.jpg') }}" />
+
+                    {% endif %}
+
+                    {% if model_type == "both" %}
+
+                    <img id="captioned_img_no_att" src="{{ url_for('static', filename='images/captioned_img_no_att.jpg') }}" />
+
+                    </br>
+
+                    <img id="captioned_img_att" src="{{ url_for('static', filename='images/captioned_img_att.jpg') }}" />
+
+                    <img id="attention_map" src="{{ url_for('static', filename='images/attention_map.jpg') }}" />
+
+                    {% endif %}
 
                 </div>
             </form>
@@ -87,16 +115,53 @@
     <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/canvasjs.min.js') }}"></script>
 
+    {% if model_type == "no attention" %}
+
     <script type="text/javascript" charset="utf-8">
 
       function img_updater()
       {
-          document.getElementById("captioned_img").src = "static/images/captioned_img.jpg?" + new Date().getTime(); // Break the cache (so it actually gets the updated image, and don't use the one stored in cache)
+          document.getElementById("captioned_img_no_att").src = "static/images/captioned_img_no_att.jpg?" + new Date().getTime(); // Break the cache (so it actually gets the updated image, and don't use the one stored in cache)
       }
 
       window.onload = img_updater;
 
     </script>
+
+    {% endif %}
+
+    {% if model_type == "attention" %}
+
+    <script type="text/javascript" charset="utf-8">
+
+      function img_updater()
+      {
+          document.getElementById("captioned_img_att").src = "static/images/captioned_img_att.jpg?" + new Date().getTime();
+          document.getElementById("attention_map").src = "static/images/attention_map.jpg?" + new Date().getTime();
+      }
+
+      window.onload = img_updater;
+
+    </script>
+
+    {% endif %}
+
+    {% if model_type == "both" %}
+
+    <script type="text/javascript" charset="utf-8">
+
+      function img_updater()
+      {
+          document.getElementById("captioned_img_no_att").src = "static/images/captioned_img_no_att.jpg?" + new Date().getTime(); // Break the cache (so it actually gets the updated image, and don't use the one stored in cache)
+          document.getElementById("captioned_img_att").src = "static/images/captioned_img_att.jpg?" + new Date().getTime();
+          document.getElementById("attention_map").src = "static/images/attention_map.jpg?" + new Date().getTime();
+      }
+
+      window.onload = img_updater;
+
+    </script>
+
+    {% endif %}
 
 </body>
 

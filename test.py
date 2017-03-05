@@ -180,10 +180,10 @@ import shutil
 #
 # plot_performance("models/LSTMs/model_keep=0.50_batch=256_hidden_dim=200_embed_dim=300_layers=3")
 
-from utilities import plot_comparison_curves
-
+# from utilities import plot_comparison_curves
+#
 plot_comparison_curves(["models/LSTMs/model_keep=0.75_batch=256_hidden_dim=400_embed_dim=300_layers=1",
-        "models/LSTMs_attention/model_keep=0.75_batch=256_hidden_dim=400_embed_dim=300_layers=1_hidden_dim_att=200"],
+        "models/LSTMs_attention/model_keep=0.75_batch=256_hidden_dim=400_embed_dim=300_layers=1_hidden_dim_att=300_utan_Dropout_i_att"],
         "CIDEr", {"param": "Attention", "param_values": ["No", "Yes"]})
 
 # with open("log.txt") as file:
@@ -228,3 +228,32 @@ plot_comparison_curves(["models/LSTMs/model_keep=0.75_batch=256_hidden_dim=400_e
 #     img_name = img_path.split("/")[3]
 #
 #     shutil.move(img_path, "/mnt/imgs/%s" % img_name)
+
+# val_img_ids = cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/val_img_ids"))
+# test_img_ids = cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/test_img_ids"))
+#
+# val_img_id_2_feature_array = {}
+# test_img_id_2_feature_array = {}
+#
+# dir = "coco/data/img_features_attention/"
+# # create a list of the paths to all val imgs:
+# img_paths = [dir + file_name for file_name in\
+#             os.listdir(dir)]
+#
+# for step, path in enumerate(img_paths):
+#     if step % 100 == 0:
+#         print step
+#
+#     file_name = path.split("/")[3]
+#     if file_name not in ["transform_params", "-1"]:
+#         img_id = int(file_name)
+#         feature_array = cPickle.load(open(path))
+#         if img_id in val_img_ids:
+#             val_img_id_2_feature_array[img_id] = feature_array
+#         else:
+#             test_img_id_2_feature_array[img_id] = feature_array
+#
+# cPickle.dump(val_img_id_2_feature_array,
+#         open("coco/data/val_img_id_2_feature_array", "wb"))
+# cPickle.dump(test_img_id_2_feature_array,
+#         open("coco/data/test_img_id_2_feature_array", "wb"))
