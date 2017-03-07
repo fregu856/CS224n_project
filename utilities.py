@@ -389,7 +389,7 @@ def get_max_caption_length(batch_size):
     """
 
     caption_length_2_no_of_captions =\
-            cPickle.load(open("coco/data/train_caption_length_2_no_of_captions"))
+            cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/train_caption_length_2_no_of_captions"))
 
     # among the caption lengths that at least batch_size captions have, get the max:
     max_caption_length = 0
@@ -441,6 +441,79 @@ def plot_comparison_curves(model_dirs, metric, params_dict):
     plt.legend(fontsize=15)
     #plt.ylim([0.85, 0.95])
     plt.savefig("comparison_plot")
+
+def evaluate_base_model():
+    """
+    - DOES: generates captions for all 5000 imgs in test using the most basic
+      baselime model (nearest neighbor), evaluates the captions and returns the
+      metric scores (BLEU-1, BLEU-2, BLEU-3, BLEU-4, CIDEr, METEOR and ROUGE_L).
+    """
+
+    print "loading data"
+
+    # get the map from test img id to feature vector:
+    test_img_id_2_feature_vector =\
+                cPickle.load(open("coco/data/test_img_id_2_feature_vector"))
+    # turn the map into a list of tuples (to make it iterable):
+    test_set = test_img_id_2_feature_vector.items()
+
+    # get the map from train img id to feature vector:
+    train_img_id_2_feature_vector =\
+                cPickle.load(open("coco/data/train_img_id_2_feature_vector"))
+    # turn the map into a list of tuples (to make it iterable):
+    train_set = train_img_id_2_feature_vector.items()
+
+    # define where the ground truth captions for the train imgs are located:
+    train_captions_file1 = "coco/annotations/captions_val2014.json"
+    train_captions_file2 = "coco/annotations/captions_train2014.json"
+    # initialize coco objects:
+    coco1 = COCO(true_captions_file1)
+    coco1 = COCO(true_captions_file2)
+
+    print "all data is loaded"
+
+    # generate a caption for every test image:
+    captions = []
+    for step, (img_id, img_vector) in enumerate(test_set):
+        if step % 100 == 0:
+            print "generating captions on test: %d" % step
+
+        distances = []
+        ids = []
+        for (train_img_id, train_img_vector) in train_set:
+            distance = np.linalg.norm(img_vector - train_img_vector)
+            distances.append(distance)
+            ids.append(train_img_id)
+
+        # get the img id of the train img that is closest to the img:
+        closest_img_id = ids[np.argmin(distances)]
+
+        # randomly pick one of the captions for the closest train img:
+        try:
+            annIds = coco1.getAnnIds(imgIds=closest_img_id)
+            anns = coco1.loadAnns(annIds)
+        except:
+            annIds = coco2.getAnnIds(imgIds=closest_img_id)
+            anns = coco2.loadAnns(annIds)
+        random.shuffle(anns)
+        img_caption = anns[0]["caption"]
+
+        # save the generated caption together with the img id in the format
+        # expected by the COCO evaluation script:
+        caption_obj = {}
+        caption_obj["image_id"] = img_id
+        caption_obj["caption"] = img_caption
+        captions.append(caption_obj)
+
+    # save the captions as a json file (will be used by the eval script):
+    captions_file = "coco/data/test_captions.json"
+    with open(captions_file, "w") as file:
+        json.dump(captions, file, sort_keys=True, indent=4)
+
+    # evaluate the generated captions:
+    results_dict = evaluate_captions(captions_file)
+
+    print results_dict
 
 def main():
     test = 1
