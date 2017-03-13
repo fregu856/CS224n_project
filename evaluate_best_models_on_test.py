@@ -19,9 +19,9 @@ from GRU_model import GRU_Config, GRU_Model
 from LSTM_model import LSTM_Config, LSTM_Model
 from GRU_attention_model import GRU_attention_Config, GRU_attention_Model
 from LSTM_attention_model import LSTM_attention_Config, LSTM_attention_Model
-from utilities import evaluate_captions
+from utilities import evaluate_captions, detokenize_caption
 
-def evaluate_best_model(model_type, test_set, vocabulary):
+def evaluate_best_model(model_type, test_set, vocabulary, train_captions):
     # initialize the model:
     if model_type == "GRU":
         config = GRU_Config()
@@ -59,6 +59,9 @@ def evaluate_best_model(model_type, test_set, vocabulary):
             saver.restore(sess, "models/GRUs_attention/best_model/model")
 
         captions = []
+        no_of_new_captions = 0
+        no_of_old_captions = 0
+        unique_words = []
         for step, (img_id, img_vector) in enumerate(test_set):
             if step % 100 == 0:
                 print "generating captions on test: %d" % step
@@ -81,6 +84,18 @@ def evaluate_best_model(model_type, test_set, vocabulary):
             caption_obj["caption"] = img_caption
             captions.append(caption_obj)
 
+            # check if the generated caption is new or is in train:
+            if img_caption in train_captions:
+                no_of_old_captions += 1
+            else:
+                no_of_new_captions += 1
+
+            # check if there are any words in the caption that he model hasn't
+            # generated before:
+            for word in img_caption.split(" "):
+                if word not in unique_words:
+                    unique_words.append(word)
+
     # save the captions as a json file (will be used by the eval script):
     captions_file = "coco/data/test_captions.json"
     with open(captions_file, "w") as file:
@@ -88,6 +103,16 @@ def evaluate_best_model(model_type, test_set, vocabulary):
 
     # evaluate the generated captions:
     results_dict = evaluate_captions(captions_file)
+
+    # compute the ratio of new captions:
+    new_captions_ratio = float(no_of_new_captions)/float(no_of_new_captions +
+                no_of_old_captions)
+
+    # get the number of unique words that the model generated:
+    vocab_size = len(unique_words)
+
+    results_dict["new_captions_ratio"] = new_captions_ratio
+    results_dict["vocab_size"] = vocab_size
 
     return results_dict
 
@@ -100,23 +125,35 @@ def main():
     # turn the map into a list of tuples (to make it iterable):
     test_set = test_img_id_2_feature_vector.items()
 
+    # get all captions in the training set:
+    train_caption_id_2_caption = cPickle.load(open("coco/data/train_caption_id_2_caption"))
+    train_captions = []
+    for caption_id in train_caption_id_2_caption:
+        caption = train_caption_id_2_caption[caption_id]
+        caption = detokenize_caption(caption, vocabulary)
+        train_captions.append(caption)
+
     # evaluate best LSTM model:
-    LSTM_results_dict = evaluate_best_model("LSTM", test_set, vocabulary)
-    # evaluate best GRU model:
-    GRU_results_dict = evaluate_best_model("GRU", test_set, vocabulary)
-    # evaluate best LSTM attention model:
-    LSTM_att_results_dict =\
-                evaluate_best_model("LSTM_attention", test_set, vocabulary)
-    # evaluate best GRU attention model:
-    GRU_att_results_dict =\
-                evaluate_best_model("GRU_attention", test_set, vocabulary)
+    LSTM_results_dict = evaluate_best_model("LSTM", test_set, vocabulary,
+                train_captions)
+    # # evaluate best GRU model:
+    # GRU_results_dict = evaluate_best_model("GRU", test_set, vocabulary,
+    #             train_captions)
+    # # evaluate best LSTM attention model:
+    #LSTM_att_results_dict =\
+    #            evaluate_best_model("LSTM_attention", test_set, vocabulary,
+    #            train_captions)
+    # # evaluate best GRU attention model:
+    # GRU_att_results_dict =\
+    #             evaluate_best_model("GRU_attention", test_set, vocabulary,
+    #             train_captions)
 
     # put all results in one dict:
     results = {}
     results["LSTM"] = LSTM_results_dict
-    results["LSTM_attention"] = LSTM_att_results_dict
-    results["GRU"] = GRU_results_dict
-    results["GRU_attention"] = GRU_att_results_dict
+    #results["LSTM_attention"] = LSTM_att_results_dict
+    # results["GRU"] = GRU_results_dict
+    # results["GRU_attention"] = GRU_att_results_dict
 
     # print all results
     print results
