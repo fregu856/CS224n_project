@@ -1,6 +1,6 @@
 # CS224n_project
 
-Installed packages on the project virtualenv (all just pip install on linux):  
+Installed packages (all just pip install on linux):  
 numpy  
 tensorflow  
 Cython (for the COCO PythonAPI)  
@@ -30,11 +30,12 @@ Download the training images and place in coco/images/train:
 $ wget "http://msvocds.blob.core.windows.net/coco2014/train2014.zip"  
 $ unzip train2014.zip  
 
-Download the validation images and place in coco/images/val:  
+Download the validation images:  
 $ wget "http://msvocds.blob.core.windows.net/coco2014/val2014.zip"  
 $ unzip val2014.zip  
+Place 5000 of the validation images in coco/images/val, 5000 in coco/images/test and the rest in coco/images/train.  
 
-Download the annotations and place in:  
+Download the captions (captions_train2014.json and captions_val2014.json) and place in:  
 coco/annotations  
 
 To install the Python API:  
@@ -46,10 +47,6 @@ https://github.com/pdollar/coco/blob/master/PythonAPI/pycocoDemo.ipynb
 
 *******
 
-Really good and intuitive explanation of LSTM:s (by far the best LSTM:s diagrams I've seen):  
-http://colah.github.io/posts/2015-08-Understanding-LSTMs/  
-
-*******
 For evaluation of captions:  
 
 Clone coco-caption and place in the coco folder in the project directory:  
