@@ -66,9 +66,18 @@ GRU_attention_model.py:
 - ASSUMES: that preprocess_captions.py, extract_img_features_attention.py and
   create_initial_embeddings.py has already been run.
 - DOES: defines the GRU_attention model and contains a script for training the
-  model.
+  model (basically identical to LSTM_attention_model.py).
   
 ********
+
+GRU_model.py:  
+- ASSUMES: that preprocess_captions.py, extract_img_features.py and
+  create_initial_embeddings.py has already been run.
+- DOES: defines the GRU model and contains a script for training the model (basically identical to LSTM_model.py).
+
+*****
+
+
 
 
 
