@@ -200,8 +200,12 @@ test.py:
 utilities.py:  
 - DOES: contains a number of functions used in different parts of the project.
 
+****
 
+web/app.py:  
+- DOES: contains backend code for local live demo webpage.
 
+****
 
-
-
+web/templates/index.html:  
+- DOES: contains frontend code for local live demo webpage.
