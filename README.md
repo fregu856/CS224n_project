@@ -62,4 +62,14 @@ Download glove.6B.zip from https://nlp.stanford.edu/projects/glove/ and place gl
 
 # Documentation
 
+GRU_attention_model.py:  
+- ASSUMES: that preprocess_captions.py, extract_img_features_attention.py and
+  create_initial_embeddings.py has already been run.
+- DOES: defines the GRU_attention model and contains a script for training the
+  model.
+  
+********
+
+
+
 
