@@ -36,7 +36,7 @@ def extract_img_features_attention(img_paths, demo=False):
 
     # load the parameters for the feature vector transform:
     transform_params = cPickle.load(open(
-                "coco/data/img_features_attention/transform_params/numpy_params"))
+                "/home/fregu856/CS224n/project/CS224n_project/coco/data/img_features_attention/transform_params/numpy_params"))
     W_img = transform_params["W_img"]
     b_img = transform_params["b_img"]
 
@@ -78,12 +78,12 @@ def extract_img_features_attention(img_paths, demo=False):
                     img_id = int(img_id)
                 else: # (if demo:)
                     # we're only extracting features for one img, (arbitrarily)
-                    # set the img id to -:
+                    # set the img id to -1:
                     img_id = -1
 
                 # save the img features to disk:
                 cPickle.dump(img_features,
-                        open("coco/data/img_features_attention/%d" % img_id, "wb"))
+                        open("/home/fregu856/CS224n/project/CS224n_project/coco/data/img_features_attention/%d" % img_id, "wb"))
 
 def main():
     # define where all val imgs are located:

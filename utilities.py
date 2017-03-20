@@ -415,7 +415,10 @@ def log(log_message):
 
 def plot_comparison_curves(model_dirs, metric, params_dict):
     """
-    - DOES: .
+    - DOES: plots "metric" (e.g. CIDEr score) vs. epoch number for all models
+      specified by their directory in "model_dirs", in the same graph. Is used
+      to create a comparison plot for different values of e.g. the dropout
+      keep probability.
     """
     param = params_dict["param"]
     param_values = params_dict["param_values"]
@@ -429,17 +432,17 @@ def plot_comparison_curves(model_dirs, metric, params_dict):
             metrics_per_epoch = cPickle.load(open("%s/eval_results/metrics_per_epoch"\
                 % model_dir))
 
-            # separate the data for the different metrics:
+            # get the data per epoch for the specific metric:
             metric_per_epoch = []
             for epoch_metrics in metrics_per_epoch:
                 metric_per_epoch.append(epoch_metrics[metric])
+            # plot the data:
             plt.plot(metric_per_epoch, label="%s: %s" %(param, param_value))
 
     plt.ylabel(metric, fontsize=15)
     plt.xlabel("epoch", fontsize=15)
     plt.title("", fontsize=15)
     plt.legend(fontsize=15)
-    #plt.ylim([0.85, 0.95])
     plt.savefig("comparison_plot")
 
 def evaluate_base_model():
@@ -464,11 +467,11 @@ def evaluate_base_model():
     train_set = train_img_id_2_feature_vector.items()
 
     # define where the ground truth captions for the train imgs are located:
-    train_captions_file1 = "coco/annotations/captions_val2014.json"
-    train_captions_file2 = "coco/annotations/captions_train2014.json"
+    true_captions_file1 = "coco/annotations/captions_val2014.json"
+    true_captions_file2 = "coco/annotations/captions_train2014.json"
     # initialize coco objects:
     coco1 = COCO(true_captions_file1)
-    coco1 = COCO(true_captions_file2)
+    coco2 = COCO(true_captions_file2)
 
     print "all data is loaded"
 
@@ -489,10 +492,9 @@ def evaluate_base_model():
         closest_img_id = ids[np.argmin(distances)]
 
         # randomly pick one of the captions for the closest train img:
-        try:
-            annIds = coco1.getAnnIds(imgIds=closest_img_id)
-            anns = coco1.loadAnns(annIds)
-        except:
+        annIds = coco1.getAnnIds(imgIds=closest_img_id)
+        anns = coco1.loadAnns(annIds)
+        if anns == []:
             annIds = coco2.getAnnIds(imgIds=closest_img_id)
             anns = coco2.loadAnns(annIds)
         random.shuffle(anns)

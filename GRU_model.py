@@ -24,14 +24,14 @@ class GRU_Config(object):
     """
 
     def __init__(self, debug=False):
-        self.dropout = 0.5 # (keep probability)
+        self.dropout = 0.75 # (keep probability)
         self.embed_dim = 300 # (dimension of word embeddings)
-        self.hidden_dim = 200 # (dimension of hidden state)
+        self.hidden_dim = 400 # (dimension of hidden state)
         self.batch_size = 256
         self.lr = 0.001
         self.img_dim = 2048 # (dimension of img feature vectors)
         self.vocab_size = 9855 # (no of words in the vocabulary)
-        self.no_of_layers = 3 # (no of layers in the RNN)
+        self.no_of_layers = 1 # (no of layers in the RNN)
         if debug:
             self.max_no_of_epochs = 2
         else:
@@ -486,9 +486,10 @@ def main():
             cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch"\
                         % model.config.model_dir, "w"))
 
-            # save the model weights to disk:
-            saver.save(sess, "%s/weights/model" % model.config.model_dir,
-                        global_step=epoch)
+            if eval_result_dict["CIDEr"] > 0.925:
+                # save the model weights to disk:
+                saver.save(sess, "%s/weights/model" % model.config.model_dir,
+                            global_step=epoch)
 
             print "epoch loss: %f | BLEU4: %f  |  CIDEr: %f" % (epoch_loss,
                         eval_result_dict["Bleu_4"], eval_result_dict["CIDEr"])

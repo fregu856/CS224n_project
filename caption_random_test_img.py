@@ -1,5 +1,3 @@
-# NOTE! val should be replaced by test once the project is finished!
-
 """
 - Must be called in one of the following ways:
   $ caption_img.py LSTM [img_id] (for using the best LSTM model)
@@ -54,9 +52,9 @@ if model_type not in ["LSTM", "GRU", "LSTM_attention", "GRU_attention"]:
                 "$ caption_random_test_img.py GRU_attention [img_id]"))
 
 # load all needed data:
-val_img_ids = cPickle.load(open("coco/data/val_img_ids"))
-val_img_id_2_feature_vector =\
-            cPickle.load(open("coco/data/val_img_id_2_feature_vector"))
+test_img_ids = cPickle.load(open("coco/data/test_img_ids"))
+test_img_id_2_feature_vector =\
+            cPickle.load(open("coco/data/test_img_id_2_feature_vector"))
 vocabulary = cPickle.load(open("coco/data/vocabulary"))
 
 if len(sys.argv) >= 3:
@@ -64,8 +62,8 @@ if len(sys.argv) >= 3:
     img_id = int(sys.argv[2])
 else:
     # pick a random test img if no img id was specified:
-    random.shuffle(val_img_ids)
-    img_id = int(val_img_ids[0])
+    random.shuffle(test_img_ids)
+    img_id = int(test_img_ids[0])
 
 # get the img's file name:
 true_captions_file = "coco/annotations/captions_val2014.json"
@@ -75,9 +73,9 @@ img_file_name = img["file_name"]
 
 # get the img's features:
 if model_type in ["LSTM", "GRU"]:
-    img_features = val_img_id_2_feature_vector[img_id]
+    img_features = test_img_id_2_feature_vector[img_id]
 elif model_type in ["LSTM_attention", "GRU_attention"]:
-    extract_img_features_attention(["coco/images/val/%s" % img_file_name], demo=True)
+    extract_img_features_attention(["coco/images/test/%s" % img_file_name], demo=True)
     img_features = cPickle.load(
                 open("coco/data/img_features_attention/%d" % -1))
 
@@ -125,7 +123,7 @@ with tf.Session() as sess:
                     img_features, vocabulary)
 
 # display the img and its generated caption:
-I = io.imread("coco/images/val/%s" % img_file_name)
+I = io.imread("coco/images/test/%s" % img_file_name)
 plt.imshow(I)
 plt.axis('off')
 plt.title(img_caption, fontsize=15)

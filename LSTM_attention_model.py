@@ -35,7 +35,7 @@ class LSTM_attention_Config(object):
         self.no_of_img_feature_vecs = 64 # (no of feature vectors per img)
         self.vocab_size = 9855 # (no of words in the vocabulary)
         self.no_of_layers = 1 # (no of layers in the RNN)
-        self.hidden_dim_att = 300 # (dim of hidden state in the attention network)
+        self.hidden_dim_att = 500 # (dim of hidden state in the attention network)
         if debug:
             self.max_no_of_epochs = 2
         else:
@@ -246,6 +246,7 @@ class LSTM_attention_Model(object):
             W_a_I = tf.get_variable("W_a_I",
                         shape=[self.config.img_feature_dim, self.config.hidden_dim_att],
                         initializer=tf.contrib.layers.xavier_initializer())
+            # (W is W_a in the paper)
             W = tf.get_variable("W",
                         shape=[self.config.hidden_dim_att, 1],
                         initializer=tf.contrib.layers.xavier_initializer())
@@ -276,8 +277,7 @@ class LSTM_attention_Model(object):
                                 self.config.no_of_img_feature_vecs, 1))
                     # (att_probs has shape [batch_size, 64, 1])
                 else:
-                    # compute att_probs with a one hidden layer NN based on
-                    # the previous hidden state: (CHANGE THIS DESCRIPTION!)
+                    # compute att_probs (alpha) according to the paper:
                     previous_output = outputs[timestep-1] # (h_{t-1})
 
                     previous_output_trans = tf.matmul(previous_output, W_a_h)
@@ -297,7 +297,7 @@ class LSTM_attention_Model(object):
                     #     a.append(a_i)
                     ####################################
 
-                    ###### faster way to compute a:
+                    # ###### faster way to compute a:
                     x = tf.transpose(self.imgs_ph, [1, 0, 2])
                     # (imgs_ph has shape [batch_size, 64, 300])
                     # (x has shape [64, batch_size, 300])
@@ -311,6 +311,7 @@ class LSTM_attention_Model(object):
                     # (previous_output_trans has shape [batch_size*64, hidden_dim_att])
 
                     y = tf.nn.tanh(x_trans + previous_output_trans + b_a)
+                    y = tf.nn.dropout(y, self.dropout_ph)
                     # (y has shape [batch_size*64, hidden_dim_att])
 
                     a = tf.matmul(y, W)
@@ -589,6 +590,8 @@ def main():
         init = tf.global_variables_initializer()
         sess.run(init)
 
+        #saver.restore(sess, "models/LSTMs_attention/model_keep=0.75_batch=256_hidden_dim=400_embed_dim=300_layers=1_hidden_dim_att=500/weights/model-18")
+
         for epoch in range(config.max_no_of_epochs):
             print "###########################"
             print "######## NEW EPOCH ########"
@@ -621,7 +624,7 @@ def main():
             cPickle.dump(eval_metrics_per_epoch, open("%s/eval_results/metrics_per_epoch"\
                         % model.config.model_dir, "w"))
 
-            if eval_result_dict["CIDEr"] > 0.85:
+            if eval_result_dict["CIDEr"] > 0.879:
                 # save the model weights to disk:
                 saver.save(sess, "%s/weights/model" % model.config.model_dir,
                             global_step=epoch)

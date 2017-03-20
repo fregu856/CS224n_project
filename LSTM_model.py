@@ -35,7 +35,7 @@ class LSTM_Config(object):
         if debug:
             self.max_no_of_epochs = 2
         else:
-            self.max_no_of_epochs = 90
+            self.max_no_of_epochs = 100
         self.max_caption_length = 40
         self.model_name = "model_keep=%.2f_batch=%d_hidden_dim=%d_embed_dim=%d_layers=%d" % (self.dropout,
                     self.batch_size, self.hidden_dim, self.embed_dim,

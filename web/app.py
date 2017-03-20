@@ -26,8 +26,8 @@ def index():
     try:
         if request.method == "POST":
             # pick a random test img:
-            random.shuffle(val_img_ids)
-            img_id = int(val_img_ids[0])
+            random.shuffle(test_img_ids)
+            img_id = int(test_img_ids[0])
 
             # get the img's file name:
             img = coco.loadImgs(img_id)[0]
@@ -38,13 +38,13 @@ def index():
 
             if model_type == "no attention":
                 # get the img's features:
-                img_features = val_img_id_2_feature_vector[img_id]
+                img_features = test_img_id_2_feature_vector[img_id]
 
                 # caption the img (using the best model):
                 img_caption = model.generate_img_caption(sess, img_features, vocabulary)
 
                 # save the img and its generated caption:
-                I = io.imread("/home/fregu856/CS224n/project/CS224n_project/coco/images/val/%s" % img_file_name)
+                I = io.imread("/home/fregu856/CS224n/project/CS224n_project/coco/images/test/%s" % img_file_name)
                 plt.figure(1)
                 plt.imshow(I)
                 plt.axis('off')
@@ -56,13 +56,13 @@ def index():
                 #extract_img_features_attention(["/home/fregu856/CS224n/project/CS224n_project/coco/images/val/%s" % img_file_name], demo=True)
                 #img_features = cPickle.load(
                 #            open("/home/fregu856/CS224n/project/CS224n_project/coco/data/img_features_attention/%d" % -1))
-                img_features = val_img_id_2_feature_array[img_id]
+                img_features = test_img_id_2_feature_array[img_id]
 
                 # caption the img (using the best model):
                 img_caption, attention_maps = model_att.generate_img_caption(sess, img_features, vocabulary)
 
                 # save the img and its generated caption:
-                I = io.imread("/home/fregu856/CS224n/project/CS224n_project/coco/images/val/%s" % img_file_name)
+                I = io.imread("/home/fregu856/CS224n/project/CS224n_project/coco/images/test/%s" % img_file_name)
                 plt.figure()
                 plt.imshow(I)
                 plt.axis('off')
@@ -115,13 +115,13 @@ def index():
 
             elif model_type == "both":
                 # get the img's features:
-                img_features = val_img_id_2_feature_vector[img_id]
+                img_features = test_img_id_2_feature_vector[img_id]
 
                 # caption the img (using the best model):
                 img_caption = model.generate_img_caption(sess, img_features, vocabulary)
 
                 # save the img and its generated caption:
-                I = io.imread("/home/fregu856/CS224n/project/CS224n_project/coco/images/val/%s" % img_file_name)
+                I = io.imread("/home/fregu856/CS224n/project/CS224n_project/coco/images/test/%s" % img_file_name)
                 plt.figure()
                 plt.imshow(I)
                 plt.axis('off')
@@ -132,7 +132,7 @@ def index():
                 #extract_img_features_attention(["/home/fregu856/CS224n/project/CS224n_project/coco/images/val/%s" % img_file_name], demo=True)
                 #img_features = cPickle.load(
                 #            open("/home/fregu856/CS224n/project/CS224n_project/coco/data/img_features_attention/%d" % -1))
-                img_features = val_img_id_2_feature_array[img_id]
+                img_features = test_img_id_2_feature_array[img_id]
 
                 # caption the img (using the best model):
                 img_caption, attention_maps = model_att.generate_img_caption(sess, img_features, vocabulary)
@@ -195,14 +195,22 @@ def index():
     except Exception as e:
         return render_template("500.html", error = str(e))
 
+@app.errorhandler(404)
+def page_not_found(e):
+    try:
+        return render_template("404.html") 
+    except Exception as e:
+        return render_template("500.html", error = str(e))
+
 if __name__ == '__main__':
     # load all needed data:
-    val_img_ids = cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/val_img_ids"))
-    val_img_id_2_feature_vector =\
-                cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/val_img_id_2_feature_vector"))
+    # (demo_img_ids is just 500 random imgs from test which I have checked are not inappropriate)
+    test_img_ids = cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/demo_img_ids"))
+    test_img_id_2_feature_vector =\
+                cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/test_img_id_2_feature_vector"))
     vocabulary = cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/vocabulary"))
-    val_img_id_2_feature_array =\
-                cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/val_img_id_2_feature_array"))
+    test_img_id_2_feature_array =\
+                cPickle.load(open("/home/fregu856/CS224n/project/CS224n_project/coco/data/test_img_id_2_feature_array"))
     true_captions_file = "/home/fregu856/CS224n/project/CS224n_project/coco/annotations/captions_val2014.json"
     coco = COCO(true_captions_file)
 

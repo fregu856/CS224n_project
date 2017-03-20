@@ -24,7 +24,7 @@ def load_pretrained_CNN():
     """
 
     # define where the pretrained inception model is located:
-    model_dir = "inception"
+    model_dir = "/home/fregu856/CS224n/project/CS224n_project/inception"
 
     path_to_saved_model = os.path.join(model_dir,
             "classify_image_graph_def.pb")

@@ -35,7 +35,7 @@ class GRU_attention_Config(object):
         self.no_of_img_feature_vecs = 64 # (no of feature vectors per img)
         self.vocab_size = 9855 # (no of words in the vocabulary)
         self.no_of_layers = 1 # (no of layers in the RNN)
-        self.hidden_dim_att = 300 # (dim of hidden state in the attention network)
+        self.hidden_dim_att = 500 # (dim of hidden state in the attention network)
         if debug:
             self.max_no_of_epochs = 2
         else:
@@ -240,16 +240,20 @@ class GRU_attention_Model(object):
 
         with tf.variable_scope("GRU_attention"):
             # initialize the attention NN paramaters:
-            W_att = tf.get_variable("W_att",
+            W_a_h = tf.get_variable("W_a_h",
                         shape=[self.config.hidden_dim, self.config.hidden_dim_att],
                         initializer=tf.contrib.layers.xavier_initializer())
-            U_att = tf.get_variable("U_att",
-                        shape=[self.config.hidden_dim_att, self.config.no_of_img_feature_vecs],
+            W_a_I = tf.get_variable("W_a_I",
+                        shape=[self.config.img_feature_dim, self.config.hidden_dim_att],
                         initializer=tf.contrib.layers.xavier_initializer())
-            b1_att = tf.get_variable("b1_att",
+            # (W is W_a in the paper)
+            W = tf.get_variable("W",
+                        shape=[self.config.hidden_dim_att, 1],
+                        initializer=tf.contrib.layers.xavier_initializer())
+            b_a = tf.get_variable("b_a",
                         shape=[1, self.config.hidden_dim_att],
                         initializer=tf.constant_initializer(0))
-            b2_att = tf.get_variable("b2_att",
+            b_alpha = tf.get_variable("b_alpha",
                         shape=[1, self.config.no_of_img_feature_vecs],
                         initializer=tf.constant_initializer(0))
 
@@ -273,8 +277,7 @@ class GRU_attention_Model(object):
                                 self.config.no_of_img_feature_vecs, 1))
                     # (att_probs has shape [batch_size, 64, 1])
                 else:
-                    # compute att_probs with a one hidden layer NN based on
-                    # the previous hidden state: (CHANGE THIS DESCRIPTION!)
+                    # compute att_probs (alpha) according to the paper:
                     previous_output = outputs[timestep-1] # (h_{t-1})
 
                     previous_output_trans = tf.matmul(previous_output, W_a_h)
@@ -294,7 +297,7 @@ class GRU_attention_Model(object):
                     #     a.append(a_i)
                     ####################################
 
-                    ###### fast way to compute a:
+                    # ###### faster way to compute a:
                     x = tf.transpose(self.imgs_ph, [1, 0, 2])
                     # (imgs_ph has shape [batch_size, 64, 300])
                     # (x has shape [64, batch_size, 300])
@@ -308,6 +311,7 @@ class GRU_attention_Model(object):
                     # (previous_output_trans has shape [batch_size*64, hidden_dim_att])
 
                     y = tf.nn.tanh(x_trans + previous_output_trans + b_a)
+                    y = tf.nn.dropout(y, self.dropout_ph)
                     # (y has shape [batch_size*64, hidden_dim_att])
 
                     a = tf.matmul(y, W)

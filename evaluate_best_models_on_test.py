@@ -135,25 +135,25 @@ def main():
 
     # evaluate best LSTM model:
     LSTM_results_dict = evaluate_best_model("LSTM", test_set, vocabulary,
+               train_captions)
+    # evaluate best GRU model:
+    GRU_results_dict = evaluate_best_model("GRU", test_set, vocabulary,
                 train_captions)
-    # # evaluate best GRU model:
-    # GRU_results_dict = evaluate_best_model("GRU", test_set, vocabulary,
-    #             train_captions)
-    # # evaluate best LSTM attention model:
-    #LSTM_att_results_dict =\
-    #            evaluate_best_model("LSTM_attention", test_set, vocabulary,
-    #            train_captions)
-    # # evaluate best GRU attention model:
-    # GRU_att_results_dict =\
-    #             evaluate_best_model("GRU_attention", test_set, vocabulary,
-    #             train_captions)
+    # evaluate best LSTM attention model:
+    LSTM_att_results_dict =\
+                evaluate_best_model("LSTM_attention", test_set, vocabulary,
+                train_captions)
+    # evaluate best GRU attention model:
+    GRU_att_results_dict =\
+             evaluate_best_model("GRU_attention", test_set, vocabulary,
+                train_captions)
 
     # put all results in one dict:
     results = {}
     results["LSTM"] = LSTM_results_dict
-    #results["LSTM_attention"] = LSTM_att_results_dict
-    # results["GRU"] = GRU_results_dict
-    # results["GRU_attention"] = GRU_att_results_dict
+    results["LSTM_attention"] = LSTM_att_results_dict
+    results["GRU"] = GRU_results_dict
+    results["GRU_attention"] = GRU_att_results_dict
 
     # print all results
     print results
