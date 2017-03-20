@@ -54,3 +54,9 @@ https://github.com/tylin/coco-caption
 Make sure java is installed:  
 $ sudo apt-get install default-jdk  
 
+*******
+
+For initialization of the embedding matrix with GloVe vectors:  
+
+Download glove.6B.zip from https://nlp.stanford.edu/projects/glove/ and place glove.6B.300d.txt in coco/annotations.
+
