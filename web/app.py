@@ -1,3 +1,7 @@
+""""
+- DOES: contains backend code for local live demo webpage.
+""""
+
 from flask import Flask, render_template, request
 
 import cPickle
@@ -198,7 +202,7 @@ def index():
 @app.errorhandler(404)
 def page_not_found(e):
     try:
-        return render_template("404.html") 
+        return render_template("404.html")
     except Exception as e:
         return render_template("500.html", error = str(e))
 
