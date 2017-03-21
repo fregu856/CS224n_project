@@ -321,9 +321,7 @@ vocabulary = cPickle.load(open("coco/data/vocabulary"))
 true_captions_file = "coco/annotations/captions_val2014.json"
 coco = COCO(true_captions_file)
 
-demo_img_ids = test_img_ids[0:500]
-cPickle.dump(demo_img_ids,
-        open("coco/data/demo_img_ids", "wb"))
+demo_img_ids = cPickle.load(open("coco/data/demo_img_ids"))
 
 # initialize the model:
 # config = LSTM_Config()
@@ -346,9 +344,6 @@ with tf.Session() as sess:
     img_number = 1
     for img_id in demo_img_ids:
         print img_number
-        if img_number < 242:
-            img_number += 1
-            continue
         # get the img's file name:
         img_id = int(img_id)
         img = coco.loadImgs(img_id)[0]
@@ -359,19 +354,17 @@ with tf.Session() as sess:
         img_features = cPickle.load(
                     open("coco/data/img_features_attention/%d" % img_id))
 
-
-
         #img_caption = model.generate_img_caption(sess, img_features, vocabulary)
         img_caption, attention_maps = model.generate_img_caption(sess,
                        img_features, vocabulary)
 
         # display the img and its generated caption:
         I = io.imread("coco/images/test/%s" % img_file_name)
-        #plt.figure()
-        #plt.imshow(I)
-        #plt.axis('off')
-        #plt.title(img_caption, fontsize=15)
-        #plt.savefig("coco/captioned_imgs/attention_%d" % img_number, bbox_inches="tight")
+        plt.figure()
+        plt.imshow(I)
+        plt.axis('off')
+        plt.title(img_caption, fontsize=15)
+        plt.savefig("coco/captioned_imgs/attention_%d" % img_number, bbox_inches="tight")
 
         # get a gray scale version of the img:
         I_gray = skimage.color.rgb2gray(I)
@@ -414,7 +407,7 @@ with tf.Session() as sess:
             plt.imshow(I_blend, cmap="gray")
             plt.axis('off')
             plt.title(word, fontsize=15)
-            plt.savefig("coco/captioned_imgs/attention_map_%d" % img_number, bbox_inches="tight")
+            plt.savefig("coco/captioned_imgs/map_%d" % img_number, bbox_inches="tight")
 
         plt.close()
         img_number += 1

@@ -25,13 +25,18 @@ from pycocotools.coco import COCO
 
 app = Flask(__name__)
 
+img_no = 0
+
 @app.route("/", methods=["GET", "POST"])
 def index():
+    global img_no
     try:
         if request.method == "POST":
             # pick a random test img:
-            random.shuffle(test_img_ids)
-            img_id = int(test_img_ids[0])
+            if img_no > len(test_img_ids) - 1:
+                img_no = 0
+            img_id = int(test_img_ids[img_no])
+            img_no += 1
 
             # get the img's file name:
             img = coco.loadImgs(img_id)[0]
