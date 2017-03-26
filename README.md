@@ -1,5 +1,11 @@
 # CS224n_project
 
+Demo: http://www.fregu856.com/image_captioning  
+Poster: https://goo.gl/KCqTfM  
+Report: https://goo.gl/X35tzq  
+
+********
+
 Installed packages (all just pip install on linux):  
 numpy  
 tensorflow  
