@@ -1,8 +1,8 @@
 # CS224n_project
 
 Demo: http://www.fregu856.com/image_captioning  
-Poster: https://goo.gl/KCqTfM  
-Report: https://goo.gl/X35tzq  
+Poster: https://goo.gl/1DMQVE  
+Report: https://goo.gl/PzgRf5  
 
 ********
 
